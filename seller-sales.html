@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مبيعاتي - CasseDZ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- مكتبة SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style> body { font-family: 'Cairo', sans-serif; } </style>
+</head>
+<body class="bg-gray-100 text-gray-800 pb-24">
+
+    <!-- الهيدر -->
+    <header class="bg-white p-4 shadow-sm sticky top-0 z-50">
+        <div class="flex justify-between items-center">
+            <h1 class="text-xl font-black text-gray-900">سجل المبيعات 💰</h1>
+            <a href="seller.html" class="bg-gray-50 p-2 rounded-full w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-200 border border-gray-200 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+            </a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 mt-6 space-y-6">
+
+        <!-- مؤشر التحميل -->
+        <div id="loadingIndicator" class="text-center py-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+
+        <!-- بطاقة الدين -->
+        <div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center shadow-sm relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 bg-red-100 w-24 h-24 rounded-full opacity-50"></div>
+            
+            <p class="text-red-600 text-xs font-bold mb-2 uppercase tracking-wide flex justify-center items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+                </svg>
+                العمولة المستحقة للموقع
+            </p>
+            
+            <h2 class="text-4xl font-black text-red-700">
+                <span id="debtAmount">0</span> <span class="text-lg font-normal text-red-500">دج</span>
+            </h2>
+            
+            <div class="w-full bg-white rounded-full h-3 mt-4 mb-2 border border-red-100 overflow-hidden">
+                <div id="debtProgressBar" class="bg-red-600 h-full rounded-full shadow-lg shadow-red-200 transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p class="text-xs text-gray-500 font-semibold">الحد الأقصى للدين: 2000 دج</p>
+            
+            <button onclick="alert('خدمة الدفع قريباً')" class="w-full mt-4 bg-white border border-red-200 text-red-600 font-bold py-3 rounded-xl hover:bg-red-600 hover:text-white transition shadow-sm">
+                تسديد العمولة الآن
+            </button>
+        </div>
+
+        <!-- إحصائيات سريعة -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                <p class="text-gray-400 text-xs font-bold mb-1">عدد المبيعات</p>
+                <p id="salesCount" class="text-3xl font-black text-gray-800">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                <p class="text-gray-400 text-xs font-bold mb-1">إجمالي الأرباح</p>
+                <p class="text-2xl font-black text-green-600 flex justify-center items-end gap-1">
+                    <span id="totalEarnings">0</span> <span class="text-sm text-gray-400 font-bold mb-1">دج</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- قائمة العمليات الأخيرة -->
+        <div>
+            <h3 class="font-bold text-gray-700 mb-4 px-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-gray-400">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" />
+                </svg>
+                آخر العمليات الناجحة:
+            </h3>
+            
+            <div id="transactionsList" class="space-y-3"></div>
+            <div id="emptyTransactions" class="hidden text-center text-gray-400 text-sm py-4">
+                لا توجد مبيعات حتى الآن
+            </div>
+        </div>
+
+    </main>
+
+    <!-- شريط التنقل السفلي -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 flex justify-between items-center z-40">
+        <a href="seller.html" class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-gray-900 transition">
+            <span class="text-2xl">🏠</span>
+            <span class="text-[10px] font-bold">الرئيسية</span>
+        </a>
+        <a href="seller-offers.html" class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-gray-900 transition">
+            <span class="text-2xl">📋</span>
+            <span class="text-[10px] font-bold">طلباتي</span>
+        </a>
+        <a href="seller-sales.html" class="flex flex-col items-center gap-1 p-2 text-blue-600 transition">
+            <span class="text-2xl">💰</span>
+            <span class="text-[10px] font-bold">المحفظة</span>
+        </a>
+        <a href="seller-settings.html" class="flex flex-col items-center gap-1 p-2 text-gray-400 hover:text-gray-900 transition">
+            <span class="text-2xl">⚙️</span>
+            <span class="text-[10px] font-bold">الإعدادات</span>
+        </a>
+    </nav>
+
+    <script>
+        const supabaseUrl = 'YOUR_SUPABASE_URL';
+        const supabaseKey = 'YOUR_SUPABASE_KEY';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        const COMMISSION_PER_SALE = 100;
+        const MAX_DEBT = 2000;
+
+        async function initPage() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'seller-login.html';
+                return;
+            }
+            fetchSalesData(session.user.id);
+        }
+
+        async function fetchSalesData(userId) {
+            try {
+                const { data, error } = await supabase
+                    .from('offers')
+                    .select('*')
+                    .eq('seller_id', userId)
+                    .eq('status', 'accepted')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                let totalEarnings = 0, salesCount = 0, commissionDebt = 0;
+                const listContainer = document.getElementById('transactionsList');
+                listContainer.innerHTML = '';
+
+                if (!data.length) {
+                    document.getElementById('emptyTransactions').classList.remove('hidden');
+                } else {
+                    document.getElementById('emptyTransactions').classList.add('hidden');
+                }
+
+                data.forEach(offer => {
+                    salesCount++;
+                    totalEarnings += offer.price;
+                    commissionDebt += COMMISSION_PER_SALE;
+
+                    const dateObj = new Date(offer.created_at);
+                    const dateStr = dateObj.toLocaleDateString('ar-DZ', { day: 'numeric', month: 'short' });
+                    const timeStr = dateObj.toLocaleTimeString('ar-DZ', { hour: '2-digit', minute:'2-digit' });
+
+                    listContainer.innerHTML += `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex justify-between items-center transition hover:bg-gray-50">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-green-100 text-green-600 w-10 h-10 rounded-full flex items-center justify-center font-bold">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-sm">${offer.part_name || 'قطعة مباعة'}</h4>
+                                <p class="text-xs text-gray-400 font-bold">${dateStr} • ${timeStr}</p>
+                            </div>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-black text-gray-800">${offer.price.toLocaleString()} <span class="text-[10px]">دج</span></p>
+                            <p class="text-xs text-red-500 font-bold">-${COMMISSION_PER_SALE} دج</p>
+                        </div>
+                    </div>`;
+                });
+
+                updateUI(salesCount, totalEarnings, commissionDebt);
+
+            } catch (error) {
+                console.error("Error fetching sales:", error);
+                document.getElementById('transactionsList').innerHTML = `<p class="text-red-500 text-center">حدث خطأ في تحميل البيانات</p>`;
+            } finally {
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            }
+        }
+
+        function updateUI(count, earnings, debt) {
+            document.getElementById('salesCount').innerText = count;
+            document.getElementById('totalEarnings').innerText = earnings.toLocaleString();
+            document.getElementById('debtAmount').innerText = debt.toLocaleString();
+
+            let percentage = (debt / MAX_DEBT) * 100;
+            if(percentage > 100) percentage = 100;
+            
+            const progressBar = document.getElementById('debtProgressBar');
+            progressBar.style.width = `${percentage}%`;
+            progressBar.classList.remove('bg-red-800');
+            progressBar.classList.add(percentage > 80 ? 'bg-red-800' : 'bg-red-600');
+        }
+
+        initPage();
+    </script>
+</body>
+</html>
