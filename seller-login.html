@@ -1,0 +1,105 @@
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دخول البائع | La Casse Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Tajawal', sans-serif; background-color: #111827; } </style>
+</head>
+<body class="text-white h-screen flex flex-col justify-center items-center p-4">
+
+    <!-- الشعار -->
+    <div class="mb-8 text-center">
+        <h1 class="text-3xl font-bold text-white">La Casse <span class="text-orange-500">Pro</span></h1>
+        <p class="text-gray-400 text-sm mt-1">بوابة أصحاب الورشات</p>
+    </div>
+
+    <!-- الصندوق الرئيسي -->
+    <div class="bg-gray-800 p-6 rounded-2xl w-full max-w-sm border border-gray-700 shadow-2xl relative">
+        
+        <!-- التبديل بين الدخول والتسجيل -->
+        <div class="flex border-b border-gray-700 mb-6">
+            <button onclick="showLogin()" id="tab-login" class="flex-1 pb-2 text-orange-500 border-b-2 border-orange-500 font-bold transition">دخول</button>
+            <button onclick="showRegister()" id="tab-register" class="flex-1 pb-2 text-gray-500 font-bold transition">حساب جديد</button>
+        </div>
+
+        <!-- 1. نموذج الدخول (Login Form) -->
+        <div id="loginForm" class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-400">رقم الهاتف</label>
+                <input type="tel" id="loginPhone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left font-mono" dir="ltr">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400">كلمة السر</label>
+                <input type="password" id="loginPassword" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+            </div>
+            
+            <!-- زر نسيت كلمة السر (المضاف حديثاً) -->
+            <div class="flex justify-end">
+                <button onclick="document.getElementById('forgotModal').classList.remove('hidden')" class="text-xs text-orange-400 hover:text-orange-300 underline cursor-pointer">
+                    نسيت كلمة السر؟
+                </button>
+            </div>
+
+            <button type="button" id="sellerLoginBtn" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg mt-2">
+                تسجيل الدخول
+            </button>
+        </div>
+
+        <!-- 2. نموذج التسجيل (Register Form) -->
+        <div id="registerForm" class="space-y-4 hidden">
+            <div>
+                <label class="text-xs text-gray-400">اسم الورشة</label>
+                <input type="text" id="regShopName" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400">رقم الهاتف</label>
+                <input type="tel" id="regPhone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left font-mono" dir="ltr">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400">كلمة سر جديدة</label>
+                <input type="password" id="regPassword" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+            </div>
+            <button type="button" id="btnRegister" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl border border-gray-500 mt-2">
+                إنشاء حساب (+1500 دج)
+            </button>
+        </div>
+
+    </div>
+
+    <!-- نافذة استرجاع كلمة السر (Modal) -->
+    <div id="forgotModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-gray-800 w-full max-w-xs p-6 rounded-2xl border border-gray-600">
+            <h3 class="text-lg font-bold text-white mb-2">استرجاع الحساب</h3>
+            <p class="text-xs text-gray-400 mb-4">أدخل رقم هاتفك وسيصل طلب للإدارة للاتصال بك.</p>
+            
+            <input type="tel" id="forgotPhone" placeholder="055..." class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white mb-4 focus:border-orange-500 text-left" dir="ltr">
+            
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('forgotModal').classList.add('hidden')" class="flex-1 bg-gray-700 py-2 rounded-lg text-sm text-gray-300">إلغاء</button>
+                <button id="btnSendReset" class="flex-1 bg-orange-600 py-2 rounded-lg text-sm font-bold text-white">إرسال الطلب</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- سكربت التبديل -->
+    <script>
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('tab-login').className = "flex-1 pb-2 text-orange-500 border-b-2 border-orange-500 font-bold transition";
+            document.getElementById('tab-register').className = "flex-1 pb-2 text-gray-500 font-bold transition";
+        }
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            document.getElementById('tab-login').className = "flex-1 pb-2 text-gray-500 font-bold transition";
+            document.getElementById('tab-register').className = "flex-1 pb-2 text-orange-500 border-b-2 border-orange-500 font-bold transition";
+        }
+    </script>
+
+    <script type="module" src="./logic.js"></script>
+
+</body>
+</html>
