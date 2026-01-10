@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تتبع طلبي | La Casse DZ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
+                    colors: { brand: { 500: '#FF6B00', 600: '#E65100' } }
+                }
+            }
+        }
+    </script>
+    <style> 
+        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; } 
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <header class="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800">تتبع الطلبات</h1>
+            <a href="index.html" class="text-sm text-brand-600 font-bold">طلب جديد؟</a>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 pb-24">
+
+        <!-- 1. شاشة الدخول (Login) -->
+        <div id="loginSection" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mt-10">
+            <h2 class="text-lg font-bold mb-4 text-center">أدخل بيانات الطلب</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">رقم الهاتف</label>
+                    <input type="tel" id="trackPhone" placeholder="0550..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-left dir-ltr font-mono focus:outline-none focus:border-brand-500">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">الرقم السري (4 أرقام)</label>
+                    <input type="number" id="trackCode" placeholder="0000" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-center font-mono text-xl tracking-widest focus:outline-none focus:border-brand-500">
+                </div>
+
+                <button id="trackBtn" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition">
+                    مشاهدة العروض
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. لوحة العروض (Dashboard) -->
+        <div id="dashboardSection" class="hidden space-y-4">
+            
+            <!-- ملخص الطلب -->
+            <div class="bg-brand-50 border border-brand-100 p-4 rounded-xl">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 id="orderTitle" class="font-bold text-brand-900 text-lg">---</h3>
+                        <p class="text-xs text-brand-700 mt-1">جاري تحميل البيانات...</p>
+                    </div>
+                    <span class="bg-brand-200 text-brand-800 text-xs px-2 py-1 rounded-lg font-bold">نشط</span>
+                </div>
+            </div>
+
+            <h3 class="font-bold text-gray-700 mt-6">العروض المستلمة من الورشات:</h3>
+            
+            <!-- قائمة العروض -->
+            <div id="offersList" class="space-y-3">
+                <div class="text-center py-8 text-gray-400 text-sm bg-white rounded-xl border border-gray-100 border-dashed">
+                    جاري البحث عن قطع غيار عند البائعين...
+                    <br>يرجى الانتظار
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- ++++++++ هذا هو الجزء الذي كان ناقصاً وتسبب في المشكلة ++++++++ -->
+    <!-- 3. نافذة الاتصال (Call Modal) -->
+    <div id="callModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white w-full max-w-sm p-6 rounded-2xl animate-slide-up text-center shadow-2xl border-2 border-green-500 relative">
+            
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">📞</div>
+            
+            <h3 class="font-bold text-xl text-gray-900 mb-2">معلومات البائع</h3>
+            
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-4">
+                <p class="text-xs text-gray-500 mb-1">رقم الهاتف</p>
+                <!-- هنا سيظهر الرقم -->
+                <a id="modalPhoneLink" href="#" class="text-3xl font-bold text-gray-900 tracking-widest block py-2 dir-ltr">...</a>
+            </div>
+
+            <p class="text-sm text-gray-600 mb-6 leading-relaxed">
+                تم إغلاق هذا الطلب بنجاح. <br>
+                <span class="text-red-500 font-bold text-xs">ملاحظة:</span> إذا لم تتم الصفقة مع هذا البائع، يرجى تقديم طلب جديد.
+            </p>
+
+            <button onclick="location.reload()" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold">
+                حسناً، فهمت
+            </button>
+        </div>
+    </div>
+    <!-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+    <script type="module" src="./logic.js"></script>
+
+</body>
+</html>
