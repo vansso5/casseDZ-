@@ -49,7 +49,41 @@ window.openLightbox = (src) => {
     box.classList.remove('hidden');
 };
 
-// --- 2. مودال التقييم الفوري (بعد الاتصال) ---
+// --- 2. دالة ضغط الصور (الحل لمشكلة الحجم الكبير) ---
+// هذه الدالة تأخذ الملف وتقوم بتصغير أبعاده وتقليل جودته ليصبح صغيراً جداً
+const compressImage = (file) => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // تحديد عرض أقصى 800 بكسل
+                const MAX_WIDTH = 800;
+                const scaleSize = MAX_WIDTH / img.width;
+                
+                // إذا كانت الصورة أصغر لا نكبرها
+                if (img.width > MAX_WIDTH) {
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                } else {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                }
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // التحويل إلى JPEG بجودة 0.6 (60%) لتقليل الحجم
+                resolve(canvas.toDataURL('image/jpeg', 0.6));
+            };
+        };
+    });
+};
+
+// --- 3. مودال التقييم الفوري (بعد الاتصال) ---
 function createPostCallRatingModal(sellerId, orderId) {
     const old = document.getElementById('postCallRatingModal');
     if(old) old.remove();
@@ -125,7 +159,7 @@ function createPostCallRatingModal(sellerId, orderId) {
     };
 }
 
-// --- 3. مودال تفاصيل العرض للزبون ---
+// --- 4. مودال تفاصيل العرض للزبون ---
 function createCustomerOfferModal() {
     if (document.getElementById('custOfferModal')) return;
     const modal = document.createElement('div');
@@ -165,7 +199,7 @@ function createCustomerOfferModal() {
 }
 createCustomerOfferModal();
 
-// --- 4. دالة مساعدة لجلب وعرض التقييم (Async) ---
+// --- 5. دالة مساعدة لجلب وعرض التقييم (Async) ---
 async function updateRatingUI(sellerId, elementId) {
     try {
         const q = query(collection(db, "ratings"), where("sellerId", "==", sellerId));
@@ -191,7 +225,7 @@ async function updateRatingUI(sellerId, elementId) {
     } catch(e) { console.error("Rating Error", e); }
 }
 
-// --- 5. دالة معاينة الصور للبائع ---
+// --- 6. دالة معاينة الصور للبائع (بدون ضغط، للعرض فقط) ---
 window.previewThumb = (input) => {
     const num = input.id.slice(-1); 
     const thumbId = 'thumb' + num;
@@ -219,26 +253,27 @@ const imagePreview = document.getElementById('imagePreview');
 const uploadPlaceholder = document.getElementById('uploadPlaceholder');
 
 if (fileInput) {
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 2 * 1024 * 1024) { alert("صورة كبيرة (Max 2MB)"); return; }
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                uploadedImageBase64 = event.target.result;
+            // هنا نستخدم دالة الضغط بدلاً من القراءة المباشرة
+            try {
+                uploadedImageBase64 = await compressImage(file);
                 if(imagePreview && uploadPlaceholder) {
                     imagePreview.src = uploadedImageBase64;
                     imagePreview.classList.remove('hidden'); 
                     uploadPlaceholder.classList.add('hidden'); 
                 }
-            };
-            reader.readAsDataURL(file);
+            } catch(err) {
+                console.error(err);
+                alert("حدث خطأ أثناء معالجة الصورة");
+            }
         }
     });
 }
 
-// --- إعادة تعيين نموذج الزبون ---
-const resetCustomerForm = () => {
+// --- إعادة تعيين نموذج الزبون (window.resetCustomerForm) ---
+window.resetCustomerForm = () => {
     document.getElementById('carMake').value = "";
     document.getElementById('carModel').value = "";
     document.getElementById('carYear').value = "";
@@ -265,88 +300,87 @@ const resetCustomerForm = () => {
 // ربط زر "طلب جديد" بالدالة
 const btnNewOrder = document.getElementById('btnNewOrder') || document.getElementById('backToFormBtn'); 
 if(btnNewOrder) {
-    btnNewOrder.addEventListener('click', resetCustomerForm);
+    btnNewOrder.addEventListener('click', window.resetCustomerForm);
 }
 
 const submitBtn = document.getElementById('submitBtn');
 if (submitBtn) {
-submitBtn.addEventListener('click', async () => {
-const carMake = document.getElementById('carMake').value;
-const carModel = document.getElementById('carModel').value;
-const carYear = document.getElementById('carYear').value;
-const partName = document.getElementById('partName').value;
-const partNotes = document.getElementById('partNotes') ? document.getElementById('partNotes').value : "";
-const phoneNumber = document.getElementById('phoneNumber').value;
+    submitBtn.addEventListener('click', async () => {
+        const carMake = document.getElementById('carMake').value;
+        const carModel = document.getElementById('carModel').value;
+        const carYear = document.getElementById('carYear').value;
+        const partName = document.getElementById('partName').value;
+        const partNotes = document.getElementById('partNotes') ? document.getElementById('partNotes').value : "";
+        const phoneNumber = document.getElementById('phoneNumber').value;
 
-if(!carMake || !partName || !phoneNumber) { alert("املأ البيانات"); return; }
+        if(!carMake || !partName || !phoneNumber) { alert("املأ البيانات"); return; }
 
-submitBtn.disabled = true;
-submitBtn.innerText = "جاري الإرسال...";
+        submitBtn.disabled = true;
+        submitBtn.innerText = "جاري الإرسال...";
 
-// توليد كود عشوائي من 4 أرقام
-const generatedCode = Math.floor(1000 + Math.random() * 9000).toString();
+        // توليد كود عشوائي من 4 أرقام
+        const generatedCode = Math.floor(1000 + Math.random() * 9000).toString();
 
-try {
-await addDoc(collection(db, "orders"), {
-carMake, carModel, carYear, partName, notes: partNotes, phoneNumber,
-imageUrl: uploadedImageBase64 || null, secretCode: generatedCode,
-status: "active", createdAt: serverTimestamp()
-});
+        try {
+            await addDoc(collection(db, "orders"), {
+                carMake, carModel, carYear, partName, notes: partNotes, phoneNumber,
+                imageUrl: uploadedImageBase64 || null, secretCode: generatedCode,
+                status: "active", createdAt: serverTimestamp()
+            });
 
-// إخفاء شاشة النموذج
-safeToggle('formScreen', 'hide');
-safeToggle('successScreen', 'show');
+            // إخفاء شاشة النموذج
+            safeToggle('formScreen', 'hide');
+            safeToggle('successScreen', 'show');
 
-// --- هنا التعديل: تصميم رسالة النجاح الجديدة والواضحة ---
-const successDiv = document.getElementById('successScreen');
-if(successDiv) {
-successDiv.innerHTML = `
-<div class="flex items-center justify-center min-h-[50vh] p-4">
-  <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-2xl text-center relative overflow-hidden animate-slide-up">
-    <div class="absolute top-0 left-0 w-full h-2 bg-green-500"></div>
-    
-    <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-100">
-      <span class="text-3xl">✅</span>
-    </div>
-    
-    <h3 class="text-2xl font-bold text-gray-900 mb-2">تم إرسال الطلب!</h3>
-    
-    <div class="bg-yellow-50 border border-yellow-100 rounded-2xl p-5 my-5 shadow-inner">
-      <p class="text-sm text-yellow-700 font-bold mb-2">⚠️ هام جداً: احفظ هذا الرمز السري</p>
-      <div class="text-4xl font-black text-gray-800 tracking-widest font-mono my-3 select-all bg-white py-2 rounded-lg border border-yellow-200 border-dashed">
-        ${generatedCode}
-      </div>
-      <p class="text-xs text-gray-500 leading-relaxed">
-        ستحتاج هذا الرمز مع رقم هاتفك لـ
-        <span class="font-bold text-gray-700">تتبع حالة الطلب</span>
-        ومشاهدة عروض البائعين.
-      </p>
-    </div>
-    
-    <div class="text-xs text-gray-400 mb-6 px-4">
-      طريقة الاستخدام: عد للصفحة الرئيسية في أي وقت، اضغط على زر "تتبع طلب"، وأدخل رقم هاتفك مع هذا الرمز.
-    </div>
-    
-    <button onclick="resetCustomerForm()" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-gray-800 transition transform active:scale-95">
-      طلب قطعة أخرى
-    </button>
-  </div>
-</div>`;
+            // --- تصميم رسالة النجاح ---
+            const successDiv = document.getElementById('successScreen');
+            if(successDiv) {
+            successDiv.innerHTML = `
+            <div class="flex items-center justify-center min-h-[50vh] p-4">
+              <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-2xl text-center relative overflow-hidden animate-slide-up">
+                <div class="absolute top-0 left-0 w-full h-2 bg-green-500"></div>
+                
+                <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-100">
+                  <span class="text-3xl">✅</span>
+                </div>
+                
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">تم إرسال الطلب!</h3>
+                
+                <div class="bg-yellow-50 border border-yellow-100 rounded-2xl p-5 my-5 shadow-inner">
+                  <p class="text-sm text-yellow-700 font-bold mb-2">⚠️ هام جداً: احفظ هذا الرمز السري</p>
+                  <div class="text-4xl font-black text-gray-800 tracking-widest font-mono my-3 select-all bg-white py-2 rounded-lg border border-yellow-200 border-dashed">
+                    ${generatedCode}
+                  </div>
+                  <p class="text-xs text-gray-500 leading-relaxed">
+                    ستحتاج هذا الرمز مع رقم هاتفك لـ
+                    <span class="font-bold text-gray-700">تتبع حالة الطلب</span>
+                    ومشاهدة عروض البائعين.
+                  </p>
+                </div>
+                
+                <div class="text-xs text-gray-400 mb-6 px-4">
+                  طريقة الاستخدام: عد للصفحة الرئيسية في أي وقت، اضغط على زر "تتبع طلب"، وأدخل رقم هاتفك مع هذا الرمز.
+                </div>
+                
+                <button onclick="window.resetCustomerForm()" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-gray-800 transition transform active:scale-95 cursor-pointer">
+                  طلب قطعة أخرى
+                </button>
+              </div>
+            </div>`;
+            }
+
+        } catch (e) {
+            alert("خطأ: " + e.message);
+            submitBtn.disabled = false;
+            submitBtn.innerText = "إرسال الطلب";
+        }
+    });
 }
 
-} catch (e) {
-alert("خطأ: " + e.message);
-submitBtn.disabled = false;
-submitBtn.innerText = "إرسال الطلب";
-}
-});
-}
-
-// ج) تتبع واتصال (تحسين المنطق لضمان العمل)
+// ج) تتبع واتصال
 const trackBtn = document.getElementById('trackBtn');
 if (trackBtn) {
     trackBtn.addEventListener('click', async () => {
-        // استخدام trim لإزالة الفراغات التي تسبب فشل البحث
         const phone = document.getElementById('trackPhone').value.trim();
         const code = document.getElementById('trackCode').value.trim();
         
@@ -365,7 +399,6 @@ if (trackBtn) {
                 const orderDoc = snap.docs[0];
                 const orderId = orderDoc.id;
                 
-                // استخدام safeToggle لتجنب الأخطاء
                 safeToggle('loginSection', 'hide');
                 safeToggle('formScreen', 'hide');
                 safeToggle('successScreen', 'hide');
@@ -382,7 +415,6 @@ if (trackBtn) {
                     list.innerHTML = "";
                     
                     onSnapshot(query(collection(db, "sales"), where("orderId", "==", orderId)), (salesSnap) => {
-                        // عرض المبيعات
                         salesSnap.forEach(sDoc => {
                             const sale = sDoc.data();
                             list.innerHTML += `
@@ -472,7 +504,6 @@ if (trackBtn) {
         await handleCustomerCall(sellerId, orderId, phone, partName, price);
     };
 
-    // --- تعديل هام: ضمان الخصم قبل الاتصال ---
     window.handleCustomerCall = async (sellerId, orderId, phone, partName, price) => {
         if(!confirm("تأكيد الاتصال؟ سيتم إغلاق الطلب وحجزه لك.")) return;
         
@@ -491,12 +522,8 @@ if (trackBtn) {
             batch.update(orderRef, { status: 'sold', soldAt: serverTimestamp() });
             batch.set(doc(collection(db, "sales")), { sellerId, partName, price, soldAt: serverTimestamp(), orderId });
             
-            // ننتظر اكتمال عملية الخصم
             await batch.commit();
-            
-            // الآن نوجه للاتصال
             window.location.href = `tel:${phone}`;
-            
             createPostCallRatingModal(sellerId, orderId);
 
         } catch(e) { 
@@ -772,13 +799,8 @@ if (document.getElementById('headerShopName')) {
                 document.getElementById('sellerImg3')?.files[0]
             ].filter(f => f); 
 
-            const readFiles = (filesArr) => Promise.all(filesArr.map(file => {
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.readAsDataURL(file);
-                });
-            }));
+            // -- التغيير هنا: استخدام compressImage بدلاً من القراءة المباشرة --
+            const readFiles = (filesArr) => Promise.all(filesArr.map(file => compressImage(file)));
 
             const originalText = sendBtn.innerText;
             sendBtn.innerText = "جاري رفع الصور...";
@@ -854,13 +876,45 @@ if (sellerLoginBtn) {
     sellerLoginBtn.addEventListener('click', async () => {
         const phone = document.getElementById('loginPhone').value;
         const password = document.getElementById('loginPassword').value;
+        
         const q = query(collection(db, "sellers"), where("phone", "==", phone), where("password", "==", password));
         const snap = await getDocs(q);
+        
         if (!snap.empty) {
-            if(snap.docs[0].data().isBlocked) { alert("محظور"); return; }
+            const data = snap.docs[0].data();
+            if (data.isBlocked) { alert("⛔ حسابك محظور من قبل الإدارة."); return; }
+            if (data.isVerified === false) {
+                alert("⏳ حسابك قيد المراجعة.\nيرجى انتظار موافقة الإدارة.");
+                return;
+            }
             localStorage.setItem('sellerId', snap.docs[0].id);
-            window.location.href = "dash.html";
-        } else { alert("خطأ في المعلومات"); }
+            window.location.href = "dash.html"; 
+        } else {
+            alert("خطأ في رقم الهاتف أو كلمة المرور");
+        }
+    });
+}
+
+// ------------------------------------------------------------------
+// ميزة معاينة صورة التسجيل (تمت الإضافة لحل المشكلة الأولى)
+// ------------------------------------------------------------------
+const regImgInput = document.getElementById('regShopImage');
+if(regImgInput) {
+    regImgInput.addEventListener('change', function(e) {
+        if(this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let preview = document.getElementById('regImgPreview');
+                if(!preview) {
+                    preview = document.createElement('img');
+                    preview.id = 'regImgPreview';
+                    preview.className = "w-full h-32 object-cover rounded-lg mt-2 border border-gray-600 shadow-lg";
+                    regImgInput.parentNode.appendChild(preview);
+                }
+                preview.src = e.target.result;
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
     });
 }
 
@@ -870,46 +924,44 @@ if (btnRegister) {
         const shopName = document.getElementById('regShopName').value;
         const phone = document.getElementById('regPhone').value;
         const password = document.getElementById('regPassword').value;
+        const wilaya = document.getElementById('regWilaya').value;
+        const baladiya = document.getElementById('regBaladiya').value;
+        const fileInput = document.getElementById('regShopImage');
 
-        if (!shopName || !phone || !password) {
-            alert("يرجى ملء جميع البيانات");
-            return;
+        if (!shopName || !phone || !password || !wilaya || !baladiya) {
+            alert("يرجى ملء جميع البيانات"); return;
+        }
+        if (!fileInput.files || !fileInput.files[0]) {
+            alert("صورة المحل إجبارية"); return;
         }
 
-        const originalText = btnRegister.innerText;
-        btnRegister.innerText = "جاري إنشاء الحساب...";
+        btnRegister.innerText = "جاري الإرسال...";
         btnRegister.disabled = true;
 
         try {
             const q = query(collection(db, "sellers"), where("phone", "==", phone));
-            const querySnapshot = await getDocs(q);
+            const snap = await getDocs(q);
+            if (!snap.empty) { alert("الهاتف مسجل مسبقاً"); btnRegister.disabled=false; btnRegister.innerText="إنشاء حساب"; return; }
 
-            if (!querySnapshot.empty) {
-                alert("رقم الهاتف هذا مسجل بالفعل");
-            } else {
+            const file = fileInput.files[0];
+            // -- التغيير هنا: استخدام compressImage بدلاً من FileReader المباشر --
+            try {
+                const compressedShopImage = await compressImage(file);
+                
                 await addDoc(collection(db, "sellers"), {
-                    shopName: shopName,
-                    phone: phone,
-                    password: password,
-                    balance: 1500, 
-                    isBlocked: false,
+                    shopName, phone, password, wilaya, baladiya,
+                    shopImage: compressedShopImage, // الصورة المضغوطة
+                    balance: 1500, isBlocked: false, isVerified: false,
                     createdAt: serverTimestamp()
                 });
-                alert("تم إنشاء الحساب بنجاح!\n🎁 مبروك! حصلت على رصيد ترحيبي بقيمة 1500 دج.");
-                
-                document.getElementById('regShopName').value = "";
-                document.getElementById('regPhone').value = "";
-                document.getElementById('regPassword').value = "";
-                
-                if (window.showLogin) window.showLogin();
+                alert("تم إرسال طلبك! انتظر تفعيل الإدارة.");
+                location.reload();
+            } catch (err) {
+                console.error(err);
+                alert("فشل في معالجة الصورة");
+                btnRegister.disabled = false;
             }
-        } catch (error) {
-            console.error(error);
-            alert("خطأ: " + error.message);
-        } finally {
-            btnRegister.innerText = originalText;
-            btnRegister.disabled = false;
-        }
+        } catch (e) { console.error(e); alert("خطأ"); btnRegister.disabled=false; }
     });
 }
 
@@ -917,29 +969,21 @@ const btnSendReset = document.getElementById('btnSendReset');
 if (btnSendReset) {
     btnSendReset.addEventListener('click', async () => {
         const phone = document.getElementById('forgotPhone').value.trim();
+        if (!phone) { alert("أدخل رقم الهاتف"); return; }
         
-        if (!phone) {
-            alert("أدخل رقم الهاتف");
-            return;
-        }
-        
-        // تغيير نص الزر ليعرف المستخدم أن العملية جارية
         const btn = btnSendReset;
         const originalText = btn.innerText;
         btn.innerText = "جاري التحقق...";
         btn.disabled = true;
         
         try {
-            // 1. التحقق أولاً من وجود الرقم في جدول البائعين
             const sellersRef = collection(db, "sellers");
             const q = query(sellersRef, where("phone", "==", phone));
             const snapshot = await getDocs(q);
             
             if (snapshot.empty) {
-                // 2. إذا كان الرقم غير موجود
-                alert("عذراً، هذا الرقم غير موجود في سجلاتنا.\nلم يتم إنشاء حساب بهذا الرقم من قبل.");
+                alert("عذراً، هذا الرقم غير موجود.");
             } else {
-                // 3. إذا كان الرقم موجوداً، يتم إرسال الطلب
                 await addDoc(collection(db, "admin_requests"), {
                     type: "password_reset",
                     phone: phone,
@@ -952,16 +996,14 @@ if (btnSendReset) {
             console.error(e);
             alert("حدث خطأ في الاتصال: " + e.message);
         } finally {
-            // إعادة الزر لحالته الطبيعية
             btn.innerText = originalText;
             btn.disabled = false;
         }
     });
 }
 
-
 // ============================================================
-// 4. منطق الأدمن (ADMIN)
+// 4. منطق الأدمن (ADMIN) - تم التحديث لدعم البحث الشامل
 // ============================================================
 const btnAdminLogin = document.getElementById('btnAdminLogin');
 if (btnAdminLogin) {
@@ -974,95 +1016,213 @@ if (btnAdminLogin) {
     });
 
     function initAdminPanel() {
-        // مراقبة الطلبات
-        onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
-            const el = document.getElementById('statOrders'); if(el) el.innerText = snap.size;
-            const list = document.getElementById('adminOrdersList');
-            if(list) {
-                list.innerHTML = "";
-                snap.forEach(d => {
-                    const data = d.data();
-                    list.innerHTML += `<div class="bg-slate-700 p-3 rounded flex justify-between items-center mb-2"><div><p class="font-bold text-sm">${data.partName}</p><p class="text-xs text-gray-400">${data.status}</p></div><button onclick="adminDeleteDoc('orders','${d.id}')" class="text-red-400 text-xs bg-slate-800 px-2 py-1 rounded">حذف</button></div>`;
-                });
-            }
-        });
+        // مخزن البيانات المحلي (لأجل البحث السريع)
+        let state = {
+            pending: [],
+            orders: [],
+            sellers: [],
+            requests: []
+        };
+
+        // ========================================================
+        // دوال الرسم (Render Functions)
+        // ========================================================
         
-        // مراقبة البائعين
-        onSnapshot(collection(db, "sellers"), (snap) => {
-            const el = document.getElementById('statSellers'); if(el) el.innerText = snap.size;
+        // 1. رسم قائمة الانتظار
+        const renderPending = (data) => {
+            const list = document.getElementById('adminPendingList');
+            if(!list) return;
+            list.innerHTML = "";
+            if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4 border border-slate-700 border-dashed rounded-lg">لا توجد نتائج</p>`; return; }
+            
+            data.forEach(item => {
+                const d = item.data;
+                const img = d.shopImage || 'https://via.placeholder.com/100';
+                list.innerHTML += `
+                <div class="bg-slate-700 p-4 rounded-xl border border-slate-600 flex flex-col sm:flex-row gap-4 items-start sm:items-center animate-slide-up hover:border-slate-500 transition">
+                  <img src="${img}" class="w-16 h-16 rounded-lg object-cover border border-slate-500 cursor-zoom-in" onclick="window.open(this.src)">
+                  <div class="flex-1">
+                    <h4 class="font-bold text-white text-base">${d.shopName}</h4>
+                    <p class="text-xs text-gray-400 mb-0.5">📍 ${d.wilaya} - ${d.baladiya}</p>
+                    <p class="text-xs text-blue-300 font-mono tracking-wider">📱 ${d.phone}</p>
+                  </div>
+                  <div class="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
+                    <button onclick="adminApproveSeller('${item.id}')" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold py-2 px-3 rounded shadow transition">✅ قبول</button>
+                    <button onclick="adminRejectSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-[10px] font-bold py-2 px-3 rounded transition">❌ رفض</button>
+                  </div>
+                </div>`;
+            });
+        };
+
+        // 2. رسم قائمة الطلبات
+        const renderOrders = (data) => {
+            const list = document.getElementById('adminOrdersList');
+            if(!list) return;
+            list.innerHTML = "";
+            if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4 border border-slate-700 border-dashed rounded-lg">لا توجد نتائج</p>`; return; }
+
+            data.forEach(item => {
+                const d = item.data;
+                list.innerHTML += `
+                <div class="bg-slate-700 p-3 rounded-xl border border-slate-600 mb-2 flex justify-between items-center hover:bg-slate-600/50 transition">
+                    <div>
+                        <p class="font-bold text-sm text-white">${d.partName}</p>
+                        <div class="flex gap-2 mt-1">
+                            <span class="text-[10px] text-gray-400 bg-slate-800 px-2 py-0.5 rounded">${d.carMake}</span>
+                            <span class="text-[10px] text-blue-300 font-mono">${d.phoneNumber}</span>
+                        </div>
+                    </div>
+                    <button onclick="adminDeleteDoc('orders','${item.id}')" class="text-red-300 hover:text-red-200 text-xs bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded border border-red-500/20 transition">حذف</button>
+                </div>`;
+            });
+        };
+
+        // 3. رسم قائمة التجار
+        const renderSellers = (data) => {
             const list = document.getElementById('adminSellersList');
-            if(list) {
-                list.innerHTML = "";
-                snap.forEach(docSnap => {
-                    const d = docSnap.data();
-                    list.innerHTML += `
-                    <div class="bg-slate-700 p-3 rounded border border-slate-600 mb-2">
-                        <div class="flex justify-between">
-                            <p class="font-bold text-white">${d.shopName}</p>
-                            <span class="${d.isBlocked ? 'text-red-400' : 'text-green-400'} text-xs">${d.isBlocked ? 'محظور' : 'نشط'}</span>
-                        </div>
-                        <p class="text-xs text-gray-400 font-mono">${d.phone} | ${d.balance} DA | ${d.password}</p>
-                        <div class="flex gap-2 mt-2">
-                            <button onclick="adminToggleBlock('${docSnap.id}', ${d.isBlocked})" class="flex-1 bg-slate-600 text-xs py-1 rounded hover:bg-slate-500">حظر/فك</button>
-                            <button onclick="adminAddBalance('${docSnap.id}')" class="flex-1 bg-green-600 text-xs py-1 rounded hover:bg-green-500">+ رصيد</button>
-                            <button onclick="adminDeleteSeller('${docSnap.id}')" class="flex-1 bg-red-600 text-xs py-1 rounded hover:bg-red-500 font-bold">مسح</button>
-                        </div>
-                    </div>`;
-                });
-            }
+            if(!list) return;
+            list.innerHTML = "";
+            if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4 border border-slate-700 border-dashed rounded-lg">لا توجد نتائج</p>`; return; }
+
+            data.forEach(item => {
+                const d = item.data;
+                list.innerHTML += `
+                <div class="bg-slate-700 p-3 rounded-xl border border-slate-600 mb-2 hover:border-slate-500 transition">
+                    <div class="flex justify-between items-center mb-1">
+                        <p class="font-bold text-white text-sm">${d.shopName}</p>
+                        <span class="${d.isBlocked ? 'text-red-400 bg-red-400/10' : 'text-green-400 bg-green-400/10'} text-[10px] px-2 py-0.5 rounded border ${d.isBlocked ? 'border-red-400/20' : 'border-green-400/20'}">${d.isBlocked ? 'محظور' : 'نشط'}</span>
+                    </div>
+                    <p class="text-xs text-gray-400 font-mono mb-2 flex gap-2">
+                        <span>📱 ${d.phone}</span>
+                        <span>📍 ${d.wilaya || '--'}</span>
+                        <span class="text-yellow-500">💰 ${d.balance} DA</span>
+                    </p>
+                    <div class="flex gap-2">
+                        <button onclick="adminToggleBlock('${item.id}', ${d.isBlocked})" class="flex-1 bg-slate-600 hover:bg-slate-500 text-[10px] py-1.5 rounded text-gray-200 transition">حظر/فك</button>
+                        <button onclick="adminAddBalance('${item.id}')" class="flex-1 bg-green-600 hover:bg-green-500 text-[10px] py-1.5 rounded text-white font-bold transition">+ رصيد</button>
+                        <button onclick="adminDeleteSeller('${item.id}')" class="flex-1 bg-red-600/10 hover:bg-red-600/20 text-red-300 border border-red-500/20 text-[10px] py-1.5 rounded transition">مسح</button>
+                    </div>
+                </div>`;
+            });
+        };
+
+        // 4. رسم طلبات الاسترجاع
+        const renderRequests = (data) => {
+            const list = document.getElementById('adminRequestsList');
+            if(!list) return;
+            list.innerHTML = "";
+            if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4">لا توجد طلبات</p>`; return; }
+            
+            data.forEach(item => {
+                const d = item.data;
+                list.innerHTML += `
+                <div class="bg-slate-700 p-3 rounded border border-slate-600 mb-2 flex justify-between items-center">
+                    <div>
+                        <p class="text-white font-mono text-sm">${d.phone}</p>
+                        <p class="text-[10px] text-gray-400">طلب استعادة</p>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <button onclick="adminRevealPass('${d.phone}')" class="text-blue-300 text-xs bg-blue-900/50 border border-blue-800 px-2 py-1 rounded hover:bg-blue-800 transition">👁️ كشف</button>
+                        <button onclick="adminDeleteDoc('admin_requests', '${item.id}')" class="text-red-400 text-xs bg-slate-800 px-2 py-1 rounded hover:bg-red-900/50">تم</button>
+                    </div>
+                </div>`;
+            });
+        };
+
+        // ========================================================
+        // دالة البحث الشامل (Global Search Logic)
+        // ========================================================
+        const performGlobalSearch = () => {
+            const searchEl = document.getElementById('globalAdminSearch');
+            // إذا لم يكن عنصر البحث موجوداً، نعرض كل البيانات كما هي
+            const term = searchEl ? searchEl.value.toLowerCase().trim() : "";
+
+            // 1. فلترة الانتظار
+            const filteredPending = state.pending.filter(i => 
+                (i.data.shopName && i.data.shopName.toLowerCase().includes(term)) ||
+                (i.data.phone && i.data.phone.includes(term)) ||
+                (i.data.wilaya && i.data.wilaya.includes(term))
+            );
+            renderPending(filteredPending);
+
+            // 2. فلترة الطلبات
+            const filteredOrders = state.orders.filter(i => 
+                (i.data.partName && i.data.partName.toLowerCase().includes(term)) ||
+                (i.data.phoneNumber && i.data.phoneNumber.includes(term)) ||
+                (i.data.carMake && i.data.carMake.toLowerCase().includes(term))
+            );
+            renderOrders(filteredOrders);
+
+            // 3. فلترة التجار
+            const filteredSellers = state.sellers.filter(i => 
+                (i.data.shopName && i.data.shopName.toLowerCase().includes(term)) ||
+                (i.data.phone && i.data.phone.includes(term)) ||
+                (i.data.wilaya && i.data.wilaya.includes(term))
+            );
+            renderSellers(filteredSellers);
+
+            // 4. فلترة طلبات الاسترجاع
+            const filteredRequests = state.requests.filter(i => 
+                (i.data.phone && i.data.phone.includes(term))
+            );
+            renderRequests(filteredRequests);
+        };
+
+        // ربط حدث الكتابة بدالة البحث
+        const searchInput = document.getElementById('globalAdminSearch');
+        if(searchInput) {
+            searchInput.addEventListener('input', performGlobalSearch);
+        }
+
+        // ========================================================
+        // جلب البيانات (Listeners)
+        // ========================================================
+
+        // أ) جلب الانتظار
+        onSnapshot(query(collection(db, "sellers"), where("isVerified", "==", false)), (snap) => {
+            const el = document.getElementById('statPending'); if(el) el.innerText = snap.size;
+            state.pending = snap.docs.map(d => ({id: d.id, data: d.data()}));
+            performGlobalSearch(); // إعادة الرسم مع تطبيق البحث الحالي إن وجد
         });
 
-        // ----------------------------------------------------
-        // مراقبة طلبات التذكير بكلمة السر (الجزء المعدل)
-        // ----------------------------------------------------
+        // ب) جلب الطلبات
+        onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
+            const el = document.getElementById('statOrders'); if(el) el.innerText = snap.size;
+            state.orders = snap.docs.map(d => ({id: d.id, data: d.data()}));
+            performGlobalSearch();
+        });
+
+        // ج) جلب التجار النشطين
+        onSnapshot(collection(db, "sellers"), (snap) => {
+            // نحسب فقط المعتمدين للإحصائية
+            const verifiedCount = snap.docs.filter(d => d.data().isVerified).length;
+            const el = document.getElementById('statSellers'); if(el) el.innerText = verifiedCount;
+            
+            // نخزن فقط المعتمدين في قائمة التجار (لأن غير المعتمدين في قائمة الانتظار)
+            state.sellers = snap.docs
+                .map(d => ({id: d.id, data: d.data()}))
+                .filter(item => item.data.isVerified === true);
+                
+            performGlobalSearch();
+        });
+
+        // د) جلب طلبات الاسترجاع
         onSnapshot(collection(db, "admin_requests"), (snap) => {
-            const list = document.getElementById('adminRequestsList');
-            if(list) {
-                list.innerHTML = "";
-                snap.forEach(docSnap => {
-                    const reqData = docSnap.data();
-                    list.innerHTML += `
-                    <div class="bg-slate-700 p-3 rounded border border-slate-600 mb-2 flex justify-between items-center">
-                        <div>
-                            <p class="text-white font-mono text-sm">${reqData.phone}</p>
-                            <p class="text-[10px] text-gray-400">طلب استعادة كلمة السر</p>
-                        </div>
-                        <div class="flex gap-2 items-center">
-                            <!-- زر كشف كلمة السر -->
-                            <button onclick="adminRevealPass('${reqData.phone}')" class="text-blue-300 text-xs bg-blue-900/50 border border-blue-800 px-2 py-1 rounded hover:bg-blue-800 transition">
-                                👁️ كشف
-                            </button>
-                            
-                            <!-- زر الحذف -->
-                            <button onclick="adminDeleteDoc('admin_requests', '${docSnap.id}')" class="text-red-400 text-xs bg-slate-800 px-2 py-1 rounded hover:bg-red-900/50">
-                                تم / حذف
-                            </button>
-                        </div>
-                    </div>`;
-                });
-            }
+            state.requests = snap.docs.map(d => ({id: d.id, data: d.data()}));
+            performGlobalSearch();
         });
     }
 
     // --- دوال الأدمن المساعدة ---
-
-    // دالة جديدة لجلب كلمة السر وعرضها للنسخ
     window.adminRevealPass = async (phone) => {
         try {
             const q = query(collection(db, "sellers"), where("phone", "==", phone));
             const querySnapshot = await getDocs(q);
-            
             if (!querySnapshot.empty) {
                 const pass = querySnapshot.docs[0].data().password;
-                // نستخدم prompt لسهولة النسخ
                 prompt("كلمة المرور لهذا الحساب هي (قم بالنسخ):", pass);
-            } else {
-                alert("لم يتم العثور على حساب بهذا الرقم (ربما تم حذفه).");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("حدث خطأ أثناء جلب كلمة السر");
-        }
+            } else { alert("لم يتم العثور على حساب بهذا الرقم."); }
+        } catch (e) { console.error(e); alert("حدث خطأ"); }
     };
 
     window.adminDeleteDoc = async (c, i) => { if(confirm("حذف الطلب؟")) await deleteDoc(doc(db, c, i)); };
@@ -1070,17 +1230,28 @@ if (btnAdminLogin) {
     window.adminAddBalance = async (id) => { const a = prompt("المبلغ:"); if(a) await updateDoc(doc(db, "sellers", id), { balance: increment(parseInt(a)) }); };
     
     window.adminDeleteSeller = async (id) => {
-        if (!confirm("هل أنت متأكد من حذف هذا الحساب؟ سيتم حذف جميع العروض المقدمة منه أيضاً!")) return;
+        if (!confirm("هل أنت متأكد من حذف هذا الحساب؟")) return;
         try {
             const q = query(collection(db, "offers"), where("sellerId", "==", id));
             const querySnapshot = await getDocs(q);
-            
             const batch = writeBatch(db);
             querySnapshot.forEach((doc) => { batch.delete(doc.ref); });
             batch.delete(doc(db, "sellers", id));
-            
             await batch.commit();
             alert("تم الحذف بنجاح");
-        } catch (error) { console.error(error); alert("حدث خطأ أثناء الحذف: " + error.message); }
+        } catch (error) { console.error(error); alert("خطأ: " + error.message); }
+    };
+
+    // دوال قبول ورفض البائعين
+    window.adminApproveSeller = async (id) => {
+        if(!confirm("تفعيل هذا البائع؟")) return;
+        await updateDoc(doc(db, "sellers", id), { isVerified: true });
+        alert("تم التفعيل");
+    };
+
+    window.adminRejectSeller = async (id) => {
+        if(!confirm("حذف هذا الطلب؟")) return;
+        await deleteDoc(doc(db, "sellers", id));
+        alert("تم الحذف");
     };
 }
