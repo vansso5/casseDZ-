@@ -970,7 +970,7 @@ createdAt: serverTimestamp()
 });
 
 // 3. رسالة النجاح (بدلاً من الدخول المباشر)
-alert("✅ تم إرسال طلبك بنجاح!\nسيتم تفعيل حسابك من قبل الإدارة بعد مراجعة الصورة والمعلومات.\n(لن تتمكن من الدخول حتى التفعيل).");
+alert("✅ تم إرسال طلبك بنجاح!\nسيتم تفعيل حسابك من قبل الإدارة بعد مراجعة و الاتصال بك.\n(لن تتمكن من الدخول حتى تتم عملية التئكيد.).");
 
 // 4. تنظيف الحقول والعودة لشاشة الدخول
 document.getElementById('regShopName').value = "";
@@ -1221,11 +1221,21 @@ if (btnAdminLogin) {
         });
 
         // ب) جلب الطلبات
-        onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
-            const el = document.getElementById('statOrders'); if(el) el.innerText = snap.size;
-            state.orders = snap.docs.map(d => ({id: d.id, data: d.data()}));
-            performGlobalSearch();
-        });
+        // ب) جلب الطلبات (تم التعديل: إخفاء المباع)
+onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
+    // 1. فلترة البيانات لاستبعاد الطلبات التي حالتها 'sold'
+    const activeOrders = snap.docs
+        .map(d => ({ id: d.id, data: d.data() }))
+        .filter(item => item.data.status !== 'sold');
+    
+    // 2. تحديث العداد بالرقم الجديد
+    const el = document.getElementById('statOrders');
+    if (el) el.innerText = activeOrders.length;
+    
+    // 3. التخزين والعرض
+    state.orders = activeOrders;
+    performGlobalSearch();
+});
 
         // ج) جلب التجار النشطين
         onSnapshot(collection(db, "sellers"), (snap) => {
