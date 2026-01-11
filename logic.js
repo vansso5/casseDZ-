@@ -920,49 +920,84 @@ if(regImgInput) {
 
 const btnRegister = document.getElementById('btnRegister');
 if (btnRegister) {
-    btnRegister.addEventListener('click', async () => {
-        const shopName = document.getElementById('regShopName').value;
-        const phone = document.getElementById('regPhone').value;
-        const password = document.getElementById('regPassword').value;
-        const wilaya = document.getElementById('regWilaya').value;
-        const baladiya = document.getElementById('regBaladiya').value;
-        const fileInput = document.getElementById('regShopImage');
+btnRegister.addEventListener('click', async () => {
+const shopName = document.getElementById('regShopName').value;
+const phone = document.getElementById('regPhone').value;
+const password = document.getElementById('regPassword').value;
+const wilaya = document.getElementById('regWilaya').value;
+const baladiya = document.getElementById('regBaladiya').value;
+const fileInput = document.getElementById('regShopImage');
 
-        if (!shopName || !phone || !password || !wilaya || !baladiya) {
-            alert("يرجى ملء جميع البيانات"); return;
-        }
-        if (!fileInput.files || !fileInput.files[0]) {
-            alert("صورة المحل إجبارية"); return;
-        }
+if (!shopName || !phone || !password || !wilaya || !baladiya) {
+alert("يرجى ملء جميع البيانات"); return;
+}
+if (!fileInput.files || !fileInput.files[0]) {
+alert("صورة المحل إجبارية"); return;
+}
 
-        btnRegister.innerText = "جاري الإرسال...";
-        btnRegister.disabled = true;
+const originalText = btnRegister.innerText;
+btnRegister.innerText = "جاري معالجة الصورة...";
+btnRegister.disabled = true;
 
-        try {
-            const q = query(collection(db, "sellers"), where("phone", "==", phone));
-            const snap = await getDocs(q);
-            if (!snap.empty) { alert("الهاتف مسجل مسبقاً"); btnRegister.disabled=false; btnRegister.innerText="إنشاء حساب"; return; }
+try {
+const q = query(collection(db, "sellers"), where("phone", "==", phone));
+const snap = await getDocs(q);
+if (!snap.empty) {
+alert("رقم الهاتف هذا مسجل بالفعل");
+btnRegister.disabled = false;
+btnRegister.innerText = originalText;
+return;
+}
 
-            const file = fileInput.files[0];
-            // -- التغيير هنا: استخدام compressImage بدلاً من FileReader المباشر --
-            try {
-                const compressedShopImage = await compressImage(file);
-                
-                await addDoc(collection(db, "sellers"), {
-                    shopName, phone, password, wilaya, baladiya,
-                    shopImage: compressedShopImage, // الصورة المضغوطة
-                    balance: 1500, isBlocked: false, isVerified: false,
-                    createdAt: serverTimestamp()
-                });
-                alert("تم إرسال طلبك! انتظر تفعيل الإدارة.");
-                location.reload();
-            } catch (err) {
-                console.error(err);
-                alert("فشل في معالجة الصورة");
-                btnRegister.disabled = false;
-            }
-        } catch (e) { console.error(e); alert("خطأ"); btnRegister.disabled=false; }
-    });
+const file = fileInput.files[0];
+
+// 1. ضغط الصورة قبل الرفع (لتفادي مشكلة الحجم)
+try {
+const compressedBase64 = await compressImage(file);
+
+// 2. إرسال البيانات (مع الصورة المضغوطة)
+await addDoc(collection(db, "sellers"), {
+shopName: shopName,
+phone: phone,
+password: password,
+wilaya: wilaya,
+baladiya: baladiya,
+shopImage: compressedBase64,
+balance: 1500,
+isBlocked: false,
+isVerified: false, // غير مفعل حتى يراجعه الأدمن
+createdAt: serverTimestamp()
+});
+
+// 3. رسالة النجاح (بدلاً من الدخول المباشر)
+alert("✅ تم إرسال طلبك بنجاح!\nسيتم تفعيل حسابك من قبل الإدارة بعد مراجعة الصورة والمعلومات.\n(لن تتمكن من الدخول حتى التفعيل).");
+
+// 4. تنظيف الحقول والعودة لشاشة الدخول
+document.getElementById('regShopName').value = "";
+document.getElementById('regPhone').value = "";
+document.getElementById('regPassword').value = "";
+document.getElementById('regWilaya').value = "";
+document.getElementById('regBaladiya').value = "";
+fileInput.value = "";
+// إزالة معاينة الصورة إن وجدت
+const preview = document.getElementById('regImgPreview');
+if(preview) preview.remove();
+
+if (window.showLogin) window.showLogin();
+
+} catch (err) {
+console.error(err);
+alert("فشل في معالجة الصورة، يرجى المحاولة بصورة أخرى.");
+}
+
+} catch (e) {
+console.error(e);
+alert("حدث خطأ في النظام: " + e.message);
+} finally {
+btnRegister.disabled = false;
+btnRegister.innerText = originalText;
+}
+});
 }
 
 const btnSendReset = document.getElementById('btnSendReset');
