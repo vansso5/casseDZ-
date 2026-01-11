@@ -11,38 +11,59 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['Tajawal', 'sans-serif'] },
-                    colors: { brand: { 500: '#FF6B00', 600: '#E65100', 900: '#111827' } }
+                    colors: { brand: { 500: '#FF6B00', 600: '#E65100', 900: '#111827' } },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards'
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
+                    }
                 }
             }
         }
     </script>
     <style> 
         body { font-family: 'Tajawal', sans-serif; background-color: #f9fafb; } 
-        /* إخفاء شريط التمرير للمظهر الجمالي */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col relative">
 
-    <!-- Header -->
+    <!-- ========================================== -->
+    <!-- 1. الهيدر (رأس الصفحة) - تم التعديل هنا -->
+    <!-- ========================================== -->
     <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
         <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+            <!-- الشعار -->
             <div class="flex items-center gap-2">
                 <div class="bg-brand-50 text-brand-600 p-2 rounded-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
                 </div>
                 <h1 class="text-xl font-bold text-gray-800 tracking-tight">La Casse <span class="text-brand-600">Pro</span></h1>
             </div>
-            <a href="track.html" class="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                تتبع طلبي
-            </a>
+
+            <!-- الأزرار (زر الورشات الجديد + زر التتبع) -->
+            <div class="flex items-center gap-2">
+                <!-- زر دعوة الورشات -->
+                <button onclick="document.getElementById('merchantModal').classList.remove('hidden')" class="text-xs font-bold text-white bg-gray-900 px-3 py-2 rounded-lg hover:bg-gray-800 transition flex items-center gap-1 shadow-md">
+                    <span>🔧</span>
+                    <span class="hidden sm:inline">أصحاب الورشات</span>
+                    <span class="sm:hidden">تجار</span>
+                </button>
+                
+                <!-- زر تتبع الطلب (يوجه لصفحة التتبع) -->
+                <a href="track.html" class="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </a>
+            </div>
         </div>
     </header>
 
     <main class="max-w-md mx-auto p-4 w-full flex-1">
         
-        <!-- 1. شاشة النجاح (مخفية) -->
+        <!-- 2. شاشة النجاح (مخفية افتراضياً) -->
         <div id="successScreen" class="hidden flex flex-col items-center justify-center py-10 animate-fade-in">
             <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
                 <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -60,8 +81,8 @@
             </button>
         </div>
 
-        <!-- 2. استمارة الطلب -->
-        <div id="formScreen">
+        <!-- 3. استمارة الطلب (الظاهرة افتراضياً) -->
+        <div id="formScreen" class="animate-slide-up">
             <div class="mb-6">
                 <h2 class="text-xl font-bold text-gray-900">معلومات القطعة</h2>
                 <p class="text-gray-400 text-xs mt-1">يرجى تعبئة المعلومات بدقة لتسهيل البحث</p>
@@ -93,13 +114,13 @@
                     </div>
                 </div>
 
-                <!-- ملاحظات إضافية (الجديد) -->
+                <!-- ملاحظات إضافية -->
                 <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition">
                     <label class="block text-[10px] font-bold text-gray-400 mb-1 flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                         ملاحظات إضافية (اختياري)
                     </label>
-                    <textarea id="partNotes" rows="2" placeholder="اكتب تفاصيل إضافية: نوع المحرك (Essence/Diesel)، اللون، أو أي مواصفات خاصة..." class="w-full text-sm text-gray-800 bg-transparent focus:outline-none resize-none"></textarea>
+                    <textarea id="partNotes" rows="2" placeholder="نوع المحرك (Essence/Diesel)، اللون..." class="w-full text-sm text-gray-800 bg-transparent focus:outline-none resize-none"></textarea>
                 </div>
 
                 <!-- رفع الصورة -->
@@ -135,6 +156,64 @@
         </div>
     </main>
 
+    <!-- ========================================== -->
+    <!-- 4. نافذة شروط التجار (MODAL) - تم الإضافة -->
+    <!-- ========================================== -->
+    <div id="merchantModal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl relative">
+            <!-- زر الإغلاق -->
+            <button onclick="document.getElementById('merchantModal').classList.add('hidden')" class="absolute top-4 left-4 bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+    
+            <!-- محتوى النافذة -->
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-brand-100 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                    🏪
+                </div>
+                
+                <h3 class="text-xl font-bold text-gray-900 mb-2">هل تملك ورشة (Casse)؟</h3>
+                <p class="text-sm text-gray-500 leading-relaxed mb-6">
+                    انضم لأكبر شبكة قطع غيار في الجزائر. لضمان المصداقية، نطلب منك الآتي عند التسجيل:
+                </p>
+    
+                <!-- قائمة الشروط -->
+                <div class="bg-gray-50 rounded-xl p-4 text-right mb-6 border border-gray-100">
+                    <ul class="space-y-3">
+                        <li class="flex items-center gap-3 text-sm text-gray-700">
+                            <span class="flex-shrink-0 w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span>
+                            اسم الورشة ورقم الهاتف.
+                        </li>
+                        <li class="flex items-center gap-3 text-sm text-gray-700">
+                            <span class="flex-shrink-0 w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span>
+                            تحديد الولاية والبلدية.
+                        </li>
+                        <li class="flex items-center gap-3 text-sm font-bold text-gray-900 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+                            <span class="flex-shrink-0 w-5 h-5 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center text-xs">📸</span>
+                            صورة حقيقية لواجهة المحل (إجباري).
+                        </li>
+                    </ul>
+                </div>
+    
+                <div class="space-y-3">
+                    <!-- هذا الرابط يوجه لصفحة تسجيل التجار -->
+                    <a href="seller-login.html" class="block w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition shadow-lg no-underline">
+                        تسجيل الدخول / إنشاء حساب
+                    </a>
+                    <button onclick="document.getElementById('merchantModal').classList.add('hidden')" class="text-xs text-gray-400 font-bold hover:text-gray-600 w-full">
+                        أنا زبون ولست تاجراً
+                    </button>
+                </div>
+            </div>
+            
+            <!-- ملاحظة سفلية -->
+            <div class="bg-gray-50 p-3 text-[10px] text-gray-400 text-center border-t border-gray-100">
+                يتم مراجعة جميع الحسابات يدوياً لحماية المجتمع.
+            </div>
+        </div>
+    </div>
+
+    <!-- ربط ملف المنطق الخلفي -->
     <script type="module" src="./logic.js"></script>
 </body>
 </html>
