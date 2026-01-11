@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -7,16 +8,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style> body { font-family: 'Tajawal', sans-serif; background-color: #111827; } </style>
 </head>
-<body class="text-white h-screen flex flex-col justify-center items-center p-4">
+<body class="text-white min-h-screen flex flex-col justify-center items-center p-4">
 
     <!-- الشعار -->
-    <div class="mb-8 text-center">
+    <div class="mb-8 text-center mt-4">
         <h1 class="text-3xl font-bold text-white">La Casse <span class="text-orange-500">Pro</span></h1>
         <p class="text-gray-400 text-sm mt-1">بوابة أصحاب الورشات</p>
     </div>
 
     <!-- الصندوق الرئيسي -->
-    <div class="bg-gray-800 p-6 rounded-2xl w-full max-w-sm border border-gray-700 shadow-2xl relative">
+    <div class="bg-gray-800 p-6 rounded-2xl w-full max-w-sm border border-gray-700 shadow-2xl relative mb-10">
         
         <!-- التبديل بين الدخول والتسجيل -->
         <div class="flex border-b border-gray-700 mb-6">
@@ -35,7 +36,7 @@
                 <input type="password" id="loginPassword" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
             </div>
             
-            <!-- زر نسيت كلمة السر (المضاف حديثاً) -->
+            <!-- زر نسيت كلمة السر -->
             <div class="flex justify-end">
                 <button onclick="document.getElementById('forgotModal').classList.remove('hidden')" class="text-xs text-orange-400 hover:text-orange-300 underline cursor-pointer">
                     نسيت كلمة السر؟
@@ -47,20 +48,52 @@
             </button>
         </div>
 
-        <!-- 2. نموذج التسجيل (Register Form) -->
+        <!-- 2. نموذج التسجيل (Register Form) - تم التعديل هنا -->
         <div id="registerForm" class="space-y-4 hidden">
+            
+            <!-- اسم الورشة -->
             <div>
-                <label class="text-xs text-gray-400">اسم الورشة</label>
-                <input type="text" id="regShopName" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+                <label class="text-xs text-gray-400">اسم الورشة (La Casse)</label>
+                <input type="text" id="regShopName" placeholder="مثال: ورشة الإخوة سطيف" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
             </div>
+
+            <!-- الولاية والبلدية (جديد) -->
+            <div class="flex gap-2">
+                <div class="flex-1">
+                    <label class="text-xs text-gray-400">الولاية</label>
+                    <input type="text" id="regWilaya" placeholder="رقم أو اسم" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-center">
+                </div>
+                <div class="flex-1">
+                    <label class="text-xs text-gray-400">البلدية</label>
+                    <input type="text" id="regBaladiya" placeholder="مقر النشاط" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-center">
+                </div>
+            </div>
+
+            <!-- رقم الهاتف -->
             <div>
                 <label class="text-xs text-gray-400">رقم الهاتف</label>
                 <input type="tel" id="regPhone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left font-mono" dir="ltr">
             </div>
+
+            <!-- كلمة السر -->
             <div>
                 <label class="text-xs text-gray-400">كلمة سر جديدة</label>
                 <input type="password" id="regPassword" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
             </div>
+
+            <!-- رفع صورة المحل (جديد) -->
+            <div class="bg-gray-900/50 p-3 rounded-lg border border-dashed border-gray-600">
+                <label class="text-xs font-bold text-orange-400 mb-2 block">صورة واجهة المحل (إجباري للتفعيل)</label>
+                <input type="file" id="regShopImage" accept="image/*" class="block w-full text-xs text-gray-400
+                  file:mr-0 file:ml-2 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-xs file:font-semibold
+                  file:bg-gray-700 file:text-white
+                  hover:file:bg-gray-600 cursor-pointer
+                "/>
+                <p class="text-[10px] text-gray-500 mt-2 text-center">يجب أن تكون اللافتة أو باب الورشة واضحاً</p>
+            </div>
+
             <button type="button" id="btnRegister" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl border border-gray-500 mt-2">
                 إنشاء حساب (+1500 دج)
             </button>
