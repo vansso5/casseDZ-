@@ -3,155 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة الإدارة | Admin</title>
+    <title>لوحة القيادة | Admin Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style> 
-        body { font-family: 'Tajawal', sans-serif; background-color: #1e293b; } 
-        /* تنسيق مخصص لشريط التمرير */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        body { font-family: 'Tajawal', sans-serif; background-color: #111827; } 
+        /* إخفاء شريط التمرير للمظهر الجمالي */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="text-white h-screen flex flex-col">
+<body class="text-white h-screen flex flex-col overflow-hidden">
 
-    <!-- 1. شاشة الدخول للأدمن -->
-    <div id="adminLoginScreen" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center p-4">
-        <h1 class="text-3xl font-bold mb-6 text-blue-500">الإدارة المركزية</h1>
-        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-sm border border-slate-700">
-            <label class="text-xs text-gray-400 mb-2 block">كود الدخول السري</label>
-            <input type="password" id="adminPass" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-center text-xl tracking-widest focus:border-blue-500 focus:outline-none mb-4">
-            <button id="btnAdminLogin" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold transition">دخول</button>
+    <!-- ============================================= -->
+    <!-- 1. شاشة الدخول للأدمن (Login Screen) -->
+    <!-- ============================================= -->
+    <div id="adminLoginScreen" class="fixed inset-0 bg-[#111827] z-50 flex flex-col items-center justify-center p-6">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-black text-white tracking-tighter">La Casse <span class="text-orange-500">Pro</span></h1>
+            <p class="text-gray-500 text-sm mt-2">بوابة الإدارة المركزية</p>
+        </div>
+        <div class="bg-gray-800/50 p-8 rounded-3xl w-full max-w-sm border border-gray-700 shadow-2xl backdrop-blur-sm">
+            <label class="text-xs text-gray-400 mb-2 block font-bold">كود الدخول السري</label>
+            <input type="password" id="adminPass" class="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 text-white text-center text-2xl tracking-[0.5em] focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 mb-6 transition-all placeholder-gray-700" placeholder="••••">
+            <button id="btnAdminLogin" class="w-full bg-orange-600 hover:bg-orange-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-orange-500/20 transition-all active:scale-95">
+                دخول للنظام 🔐
+            </button>
         </div>
     </div>
 
-    <!-- 2. لوحة التحكم -->
-    <div id="adminDashboard" class="hidden flex-1 overflow-hidden flex flex-col">
+    <!-- ============================================= -->
+    <!-- 2. لوحة التحكم (Dashboard) -->
+    <!-- ============================================= -->
+    <div id="adminDashboard" class="hidden flex-1 flex flex-col h-full relative">
         
-        <!-- الشريط العلوي (تم إضافة البحث هنا) -->
-        <header class="bg-slate-800 border-b border-slate-700 p-3 flex flex-col md:flex-row justify-between items-center shadow-lg gap-4 z-20">
+        <!-- أ) الشريط العلوي (Header) -->
+        <header class="bg-gray-800 border-b border-gray-700 h-16 flex justify-between items-center px-4 shadow-md z-30 relative">
             
-            <!-- اللوجو -->
-            <div class="flex items-center gap-2 min-w-fit">
-                <h2 class="font-bold text-lg text-white">لوحة القيادة 🚀</h2>
+            <!-- الشعار -->
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">CP</div>
+                <h2 class="font-bold text-lg hidden sm:block">لوحة القيادة</h2>
             </div>
 
-            <!-- (جديد) خانة البحث الشامل -->
-            <div class="flex-1 w-full max-w-xl mx-auto relative">
-                <input type="text" id="globalAdminSearch" placeholder="🔍 بحث شامل (اسم المتجر، الهاتف، نوع القطعة...)" 
-                       class="w-full bg-slate-900 border border-slate-600 rounded-xl py-2.5 px-4 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition shadow-inner">
-            </div>
-            
-            <!-- أزرار التنقل -->
-            <div class="flex gap-2 min-w-fit">
-                <a href="index.html" target="_blank" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-gray-300 border border-slate-600 flex items-center gap-1 transition">
-                    <span>👤</span> الزبون
+            <!-- زر القائمة (Hamburger) -->
+            <button onclick="toggleMenu()" class="p-2 rounded-lg bg-gray-700 text-gray-200 hover:bg-gray-600 transition focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+
+            <!-- القائمة المنسدلة (Dropdown Menu) -->
+            <div id="dropdownMenu" class="absolute top-16 left-4 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl overflow-hidden hidden transform transition-all duration-200 origin-top-left z-40">
+                <a href="index.html" target="_blank" class="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white border-b border-gray-700 flex items-center gap-2">
+                    <span>👤</span> واجهة الزبون
                 </a>
-                <button onclick="location.reload()" class="bg-red-500/10 text-red-400 px-3 py-2 rounded text-xs hover:bg-red-500/20 transition border border-red-500/20 font-bold">
-                    خروج
+                <button onclick="location.reload()" class="block w-full text-right px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center gap-2">
+                    <span>🚪</span> تسجيل الخروج
                 </button>
             </div>
         </header>
 
-        <!-- المحتوى الرئيسي -->
-        <main class="flex-1 overflow-y-auto p-4 space-y-6">
+        <!-- ب) المحتوى الرئيسي -->
+        <main class="flex-1 overflow-y-auto p-4 space-y-6 pb-20 scroll-smooth">
             
-            <!-- أ) الإحصائيات السريعة -->
+            <!-- 1. شريط البحث الشامل -->
+            <div class="relative group">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <svg class="w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" id="globalAdminSearch" 
+                       class="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent block w-full pr-12 pl-4 py-4 shadow-sm transition-all placeholder-gray-500" 
+                       placeholder="بحث سريع (اسم المتجر، رقم الهاتف، نوع القطعة...)">
+            </div>
+
+            <!-- 2. بطاقات الإحصائيات -->
             <div class="grid grid-cols-3 gap-3">
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 text-center shadow-lg">
-                    <p class="text-xs text-gray-400">قيد الانتظار</p>
-                    <h3 class="text-2xl font-bold text-yellow-500" id="statPending">0</h3>
+                <!-- قيد الانتظار -->
+                <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-lg flex flex-col items-center justify-center gap-1 hover:border-yellow-500/50 transition cursor-default">
+                    <span class="text-2xl">🔔</span>
+                    <h3 class="text-3xl font-bold text-white" id="statPending">0</h3>
+                    <p class="text-[10px] text-gray-400 font-bold">طلبات التفعيل</p>
                 </div>
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 text-center shadow-lg">
-                    <p class="text-xs text-gray-400">البائعين النشطين</p>
-                    <h3 class="text-2xl font-bold text-blue-400" id="statSellers">0</h3>
+                
+                <!-- البائعين -->
+                <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-lg flex flex-col items-center justify-center gap-1 hover:border-blue-500/50 transition cursor-default">
+                    <span class="text-2xl">🏪</span>
+                    <h3 class="text-3xl font-bold text-white" id="statSellers">0</h3>
+                    <p class="text-[10px] text-gray-400 font-bold">التجار النشطين</p>
                 </div>
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 text-center shadow-lg">
-                    <p class="text-xs text-gray-400">الطلبات</p>
-                    <h3 class="text-2xl font-bold text-green-400" id="statOrders">0</h3>
+
+                <!-- الطلبات -->
+                <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-lg flex flex-col items-center justify-center gap-1 hover:border-green-500/50 transition cursor-default">
+                    <span class="text-2xl">📦</span>
+                    <h3 class="text-3xl font-bold text-white" id="statOrders">0</h3>
+                    <p class="text-[10px] text-gray-400 font-bold">طلبات الزبائن</p>
                 </div>
             </div>
 
-            <!-- ب) التبويبات -->
-            <div class="flex bg-slate-800 p-1.5 rounded-xl overflow-x-auto shadow-md border border-slate-700">
-                <button onclick="showSection('pending')" id="tab-pending" class="flex-1 py-2.5 text-sm whitespace-nowrap px-4 rounded-lg bg-blue-600 text-white font-bold transition shadow">
-                    طلبات التفعيل 🔔
+            <!-- 3. شريط التنقل (Tabs) -->
+            <div class="flex bg-gray-800/80 backdrop-blur p-1.5 rounded-2xl shadow-inner overflow-x-auto hide-scrollbar border border-gray-700 sticky top-0 z-20">
+                <button onclick="showSection('pending')" id="tab-pending" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold whitespace-nowrap transition-all bg-yellow-500 text-black shadow-lg transform scale-100">
+                    قيد الانتظار
                 </button>
-                <button onclick="showSection('orders')" id="tab-orders" class="flex-1 py-2.5 text-sm whitespace-nowrap px-4 rounded-lg text-gray-400 hover:text-white transition hover:bg-slate-700">
+                <button onclick="showSection('orders')" id="tab-orders" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-gray-400 whitespace-nowrap hover:bg-gray-700 transition-all">
                     الطلبات الجارية
                 </button>
-                <button onclick="showSection('sellers')" id="tab-sellers" class="flex-1 py-2.5 text-sm whitespace-nowrap px-4 rounded-lg text-gray-400 hover:text-white transition hover:bg-slate-700">
+                <button onclick="showSection('sellers')" id="tab-sellers" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-gray-400 whitespace-nowrap hover:bg-gray-700 transition-all">
                     قائمة التجار
                 </button>
-                <button onclick="showSection('requests')" id="tab-requests" class="flex-1 py-2.5 text-sm whitespace-nowrap px-4 rounded-lg text-gray-400 hover:text-white transition hover:bg-slate-700">
-                    استرجاع كلمة السر
+                <button onclick="showSection('requests')" id="tab-requests" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-gray-400 whitespace-nowrap hover:bg-gray-700 transition-all">
+                    الاسترجاع
                 </button>
             </div>
 
-            <!-- ج) الأقسام -->
+            <!-- 4. مناطق المحتوى (Sections) -->
+            <div class="min-h-[300px]">
+                
+                <!-- أ) قسم الانتظار -->
+                <section id="sec-pending" class="space-y-4 animate-fade-in">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                        <h3 class="text-sm font-bold text-gray-300">طلبات انضمام جديدة</h3>
+                    </div>
+                    <div id="adminPendingList" class="space-y-3 pb-10">
+                        <p class="text-center text-gray-600 text-sm py-8">جاري التحميل...</p>
+                    </div>
+                </section>
 
-            <!-- 1. قسم طلبات التفعيل -->
-            <section id="sec-pending" class="space-y-4">
-                <div class="flex justify-between items-center px-1">
-                    <h3 class="text-sm font-bold text-yellow-500 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
-                        تجار بانتظار الموافقة
-                    </h3>
-                </div>
-                <div id="adminPendingList" class="space-y-3">
-                    <p class="text-center text-gray-500 mt-10">جاري التحميل...</p>
-                </div>
-            </section>
+                <!-- ب) قسم الطلبات -->
+                <section id="sec-orders" class="hidden space-y-4 animate-fade-in">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        <h3 class="text-sm font-bold text-gray-300">طلبات قطع الغيار</h3>
+                    </div>
+                    <div id="adminOrdersList" class="space-y-3 pb-10">
+                        <p class="text-center text-gray-600 text-sm py-8">جاري التحميل...</p>
+                    </div>
+                </section>
 
-            <!-- 2. قسم الطلبات -->
-            <section id="sec-orders" class="hidden space-y-4">
-                <h3 class="text-sm font-bold text-gray-400 px-1">طلبات قطع الغيار النشطة</h3>
-                <div id="adminOrdersList" class="space-y-3">
-                    <p class="text-center text-gray-500 mt-10">جاري التحميل...</p>
-                </div>
-            </section>
+                <!-- ج) قسم التجار -->
+                <section id="sec-sellers" class="hidden space-y-4 animate-fade-in">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <h3 class="text-sm font-bold text-gray-300">إدارة التجار المعتمدين</h3>
+                    </div>
+                    <div id="adminSellersList" class="space-y-3 pb-10">
+                        <p class="text-center text-gray-600 text-sm py-8">جاري التحميل...</p>
+                    </div>
+                </section>
 
-            <!-- 3. قسم البائعين (تم حذف البحث الداخلي لأنه أصبح في الأعلى) -->
-            <section id="sec-sellers" class="hidden space-y-4">
-                <h3 class="text-sm font-bold text-gray-400 px-1">التجار المعتمدين</h3>
-                <div id="adminSellersList" class="space-y-3">
-                    <p class="text-center text-gray-500 mt-10">جاري التحميل...</p>
-                </div>
-            </section>
+                <!-- د) قسم الاسترجاع -->
+                <section id="sec-requests" class="hidden space-y-4 animate-fade-in">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        <h3 class="text-sm font-bold text-gray-300">طلبات كلمة السر</h3>
+                    </div>
+                    <div id="adminRequestsList" class="space-y-3 pb-10">
+                        <p class="text-center text-gray-600 text-sm py-8">لا توجد طلبات</p>
+                    </div>
+                </section>
 
-            <!-- 4. قسم استرجاع كلمة السر -->
-            <section id="sec-requests" class="hidden space-y-4">
-                <h3 class="text-sm font-bold text-gray-400 px-1">طلبات نسيت كلمة السر</h3>
-                <div id="adminRequestsList" class="space-y-3">
-                    <p class="text-center text-gray-500 mt-10">لا توجد طلبات معلقة</p>
-                </div>
-            </section>
+            </div>
 
         </main>
     </div>
 
-    <!-- سكربت التنقل -->
+    <!-- سكربتات الواجهة (UI Only) -->
     <script>
+        // تبديل القائمة العلوية
+        function toggleMenu() {
+            const menu = document.getElementById('dropdownMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // إغلاق القائمة عند الضغط خارجها
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('dropdownMenu');
+            const btn = document.querySelector('button[onclick="toggleMenu()"]');
+            if (!menu.contains(event.target) && !btn.contains(event.target) && !menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // التنقل بين التبويبات (Tabs Logic)
         function showSection(sec) {
+            // 1. إخفاء كل الأقسام
             ['pending', 'orders', 'sellers', 'requests'].forEach(id => {
                 document.getElementById('sec-' + id).classList.add('hidden');
+                
+                // إعادة ستايل التبويبات للوضع الافتراضي
                 const tab = document.getElementById('tab-' + id);
                 if(tab) {
-                    tab.classList.remove('bg-blue-600', 'text-white', 'shadow');
-                    tab.classList.add('text-gray-400', 'hover:bg-slate-700');
+                    tab.className = "flex-1 py-3 px-4 rounded-xl text-xs font-bold text-gray-400 whitespace-nowrap hover:bg-gray-700 transition-all";
                 }
             });
+
+            // 2. إظهار القسم المطلوب
             document.getElementById('sec-' + sec).classList.remove('hidden');
+
+            // 3. تفعيل التبويب المختار
             const activeTab = document.getElementById('tab-' + sec);
             if(activeTab) {
-                activeTab.classList.remove('text-gray-400', 'hover:bg-slate-700');
-                activeTab.classList.add('bg-blue-600', 'text-white', 'shadow');
+                // تحديد لون حسب القسم
+                let activeColor = "bg-gray-700 text-white";
+                if(sec === 'pending') activeColor = "bg-yellow-500 text-black shadow-lg shadow-yellow-500/20";
+                if(sec === 'orders') activeColor = "bg-green-600 text-white shadow-lg shadow-green-600/20";
+                if(sec === 'sellers') activeColor = "bg-blue-600 text-white shadow-lg shadow-blue-600/20";
+                if(sec === 'requests') activeColor = "bg-red-600 text-white shadow-lg shadow-red-600/20";
+
+                activeTab.className = `flex-1 py-3 px-4 rounded-xl text-xs font-bold whitespace-nowrap transition-all transform scale-105 ${activeColor}`;
             }
         }
     </script>
 
+    <!-- ربط ملف المنطق -->
     <script type="module" src="./logic.js"></script>
 </body>
 </html>
