@@ -769,15 +769,24 @@ if (document.getElementById('headerShopName')) {
         });
     }
 
-    const sendBtn = document.getElementById('sendOfferBtn');
+        const sendBtn = document.getElementById('sendOfferBtn');
     if(sendBtn) {
         sendBtn.addEventListener('click', async () => {
+            
+            // 1. التحقق من الرصيد أولاً
+            if (currentSellerData.balance < 50) {
+                alert("⚠️ عذراً، رصيدك غير كافٍ لإرسال العروض.\nيجب أن يكون لديك 50 دج على الأقل.");
+                return; 
+            }
+
+            // 2. التحقق من المدخلات
             const price = document.getElementById('offerPrice').value;
             if(!price) return alert("أدخل السعر");
 
             const condition = document.getElementById('offerCondition') ? document.getElementById('offerCondition').value : "غير محدد";
             const notes = document.getElementById('offerNotes') ? document.getElementById('offerNotes').value : "";
             
+            // 3. معالجة الصور
             sellerImagesBase64 = [];
             const files = [
                 document.getElementById('sellerImg1')?.files[0],
@@ -785,7 +794,6 @@ if (document.getElementById('headerShopName')) {
                 document.getElementById('sellerImg3')?.files[0]
             ].filter(f => f); 
 
-            // -- التغيير هنا: استخدام compressImage بدلاً من القراءة المباشرة --
             const readFiles = (filesArr) => Promise.all(filesArr.map(file => compressImage(file)));
 
             const originalText = sendBtn.innerText;
@@ -798,6 +806,7 @@ if (document.getElementById('headerShopName')) {
                 } catch(err) { alert("خطأ في الصور"); sendBtn.disabled = false; return; }
             }
 
+            // 4. إرسال البيانات
             sendBtn.innerText = "جاري الإرسال...";
             try {
                 const partNameEl = document.getElementById('detailPartName');
@@ -820,6 +829,7 @@ if (document.getElementById('headerShopName')) {
                 
                 alert("تم إرسال العرض بنجاح!");
             } catch(e) { alert(e.message); }
+            
             sendBtn.innerText = originalText;
             sendBtn.disabled = false;
         });
