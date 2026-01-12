@@ -437,9 +437,11 @@ if (trackBtn) {
                             const offerDataStr = encodeURIComponent(JSON.stringify({...o, id: offerId}));
                             const ratingBoxId = `rating-${o.sellerId}-${offerId}`;
                             
-                            const actionButtonHtml = `<button onclick="openCustomerOfferDetails('${offerDataStr}')" class="block w-full bg-brand-600 hover:bg-brand-700 text-white text-center py-3 rounded-xl mt-4 font-bold transition shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2">
-                                👁️ معاينة العرض
-                            </button>`;
+                            const actionButtonHtml = `
+<button onclick="openCustomerOfferDetails('${offerDataStr}')" 
+class="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-orange-900/20 active:scale-95 transition-all text-sm mt-4">
+    عرض تفاصيل القطعة
+</button>`;
 
                             list.innerHTML += `
                             <div class="bg-white p-5 rounded-2xl border border-gray-100 mb-4 shadow-sm hover:shadow-md transition">
@@ -742,10 +744,10 @@ if (document.getElementById('headerShopName')) {
                     <div class="relative">
                         <select id="offerCondition" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:border-brand-500 appearance-none">
                             <option value="" disabled selected>اختر حالة القطعة</option>
-                            <option value="جديدة">✨ جديدة (New)</option>
-                            <option value="شبه جديدة">🔥 شبه جديدة (Good Condition)</option>
-                            <option value="مستعملة">🔧 مستعملة (Used)</option>
-                            <option value="قديمة">🏚️ قديمة (Old)</option>
+                            <option value="جديدة"> جديدة (New)</option>
+                            <option value="شبه جديدة"> شبه جديدة (Good Condition)</option>
+                            <option value="مستعملة"> مستعملة (Used)</option>
+                            <option value="قديمة"> قديمة (Old)</option>
                         </select>
                         <div class="absolute inset-y-0 left-0 flex items-center px-3 pointer-events-none text-gray-500">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
