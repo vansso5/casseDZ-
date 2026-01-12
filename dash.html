@@ -3,190 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة البائع | La Casse DZ</title>
+    <title>لوحة البائع | La Casse Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
+                    colors: { brand: { 500: '#f97316', 600: '#ea580c', 900: '#0f172a' } }
+                }
+            }
+        }
+    </script>
     <style> 
-        body { font-family: 'Tajawal', sans-serif; background-color: #ffffff; color: #1e293b; } 
-        
-        /* شريط التمرير */
-        ::-webkit-scrollbar { width: 5px; }
+        body { font-family: 'Tajawal', sans-serif; background-color: #ffffff; color: #1e293b; min-height: 100vh; display: flex; flex-direction: column; } 
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #f8fafc; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-
-        /* تأثير الزجاج الفاتح */
-        .glass-header { 
-            background: rgba(255, 255, 255, 0.9); 
-            backdrop-filter: blur(12px); 
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05); 
-        }
-
-        /* كرت الطلب */
-        .order-card {
-            background: #ffffff;
-            border: 1px solid #f1f5f9;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-            transition: all 0.3s ease;
-        }
-        .order-card:hover {
-            border-color: #f97316;
-            transform: translateY(-2px);
-            box-shadow: 0 12px 20px -8px rgba(249, 115, 22, 0.15);
-        }
-
+        
+        .glass-header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
         
-        .nav-active { color: #f97316; }
-        .nav-active::after {
-            content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
-            width: 4px; height: 4px; background: #f97316; border-radius: 50%;
-        }
+        .nav-active { color: #f97316; transform: scale(1.1); transition: all 0.2s; }
+        .nav-active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #f97316; border-radius: 50%; }
+        
+        /* ستايل السياسات المنسدلة */
+        .policy-content-merchant { max-height: 0; overflow: hidden; transition: all 0.5s ease-in-out; opacity: 0; }
+        .policy-content-merchant.open { max-height: 1000px; opacity: 1; margin-top: 1rem; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col relative bg-slate-50/50">
+<body class="bg-slate-50/50 relative overflow-x-hidden selection:bg-orange-500 selection:text-white">
 
-    <!-- خلفية جمالية خفيفة -->
-    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none opacity-50">
+    <!-- خلفية جمالية Blobs -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none opacity-40">
         <div class="absolute top-[-5%] right-[-5%] w-[350px] h-[350px] bg-orange-100 rounded-full blur-[90px]"></div>
         <div class="absolute bottom-[-5%] left-[-5%] w-[350px] h-[350px] bg-blue-50 rounded-full blur-[90px]"></div>
     </div>
 
-    <!-- Header (تم إضافة اللوجو هنا) -->
+    <!-- Header -->
     <header class="glass-header sticky top-0 z-50">
         <div class="max-w-md mx-auto px-5 py-3 flex justify-between items-center">
-            
-            <!-- قسم اللوجو واسم الورشة -->
             <div class="flex items-center gap-3">
                 <div class="flex flex-col">
-                    <!-- اللوجو الرئيسي -->
-                    <h1 class="text-lg font-black tracking-tighter leading-none text-gray-900">
-                        LA CASSE <span class="text-orange-500">DZ</span>
-                    </h1>
-                    <!-- اسم ورشة التاجر يظهر هنا كعنوان فرعي -->
+                    <h1 class="text-xl font-black tracking-tighter leading-none text-gray-900 italic">LA CASSE <span class="text-orange-500">PRO</span></h1>
                     <div class="flex items-center gap-1.5 mt-1">
-                        <span class="flex h-1.5 w-1.5 relative">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
-                        </span>
-                        <span id="headerShopName" class="text-[10px] font-bold text-gray-400 truncate max-w-[120px]">جاري التحميل...</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest" id="headerShopName">...</p>
                     </div>
                 </div>
             </div>
             
-            <!-- الرصيد بتصميم بريميوم -->
-            <div class="bg-gray-900 px-4 py-2 rounded-2xl shadow-lg shadow-gray-200 flex flex-col items-center min-w-[80px]">
-                <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">الرصيد</span>
-                <span class="font-black text-orange-500 text-xs" dir="ltr" id="headerBalance">---</span>
+            <div class="bg-gray-900 text-white px-4 py-2 rounded-2xl flex flex-col items-center shadow-lg min-w-[85px]">
+                <span class="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">الرصيد</span>
+                <span class="font-bold text-orange-500 text-xs" dir="ltr" id="headerBalance">---</span>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 max-w-md mx-auto w-full p-4 pb-28">
+    <main class="flex-1 overflow-y-auto pb-32 max-w-md mx-auto w-full p-4 hide-scrollbar">
         
         <!-- 1. قسم السوق -->
         <section id="view-market" class="block space-y-4 animate-slide-up">
-            <div class="flex items-center justify-between px-1">
-                <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">السوق <span class="text-orange-500">المباشر</span></h2>
-                <div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm">
-                    <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
-                    <span class="text-[9px] font-bold text-gray-500">تحديث تلقائي</span>
-                </div>
-            </div>
+            <h2 class="text-xs font-black text-gray-400 tracking-widest uppercase px-1">السوق المباشر <span class="text-orange-500 underline decoration-2 underline-offset-4">(آخر 4 ساعات)</span></h2>
             <div id="ordersList" class="space-y-3">
-                <!-- Loader -->
-                <div class="flex flex-col items-center py-20 text-gray-300">
-                    <div class="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-                </div>
+                <div class="text-center py-20 text-gray-300 animate-pulse text-xs uppercase font-bold tracking-widest">جاري التحديث...</div>
             </div>
         </section>
 
         <!-- 2. قسم عروضي -->
         <section id="view-offers" class="hidden space-y-4 animate-slide-up">
-            <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">عروضي <span class="text-orange-500">النشطة</span></h2>
+            <h2 class="text-xs font-black text-gray-400 tracking-widest uppercase px-1">عروضي <span class="text-orange-500">النشطة</span></h2>
             <div id="myOffersList" class="space-y-3"></div>
         </section>
 
         <!-- 3. قسم المبيعات -->
-        <section id="view-sales" class="hidden space-y-4 animate-slide-up">
-            <div class="bg-gray-900 p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-                <div class="absolute -top-6 -right-6 w-24 h-24 bg-orange-500 rounded-full blur-[50px] opacity-20"></div>
-                <p class="text-gray-400 text-[10px] font-black mb-1 uppercase tracking-widest">Total Sales</p>
-                <h3 class="text-4xl font-black font-mono" id="totalSalesCount">0</h3>
-                <p class="text-[9px] text-gray-500 mt-3 flex items-center gap-1">
-                    <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                    يتم احتساب العمولة عند اتصال الزبون
-                </p>
+        <section id="view-sales" class="hidden space-y-5 animate-slide-up">
+            <div class="bg-gray-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-orange-600 rounded-full blur-[60px] opacity-20"></div>
+                <p class="text-orange-500 text-[10px] font-black mb-1 uppercase tracking-widest">إجمالي المبيعات (الناجحة)</p>
+                <h3 class="text-5xl font-black font-mono tracking-tighter" id="totalSalesCount">0</h3>
+                <p class="text-[9px] text-gray-500 mt-4 leading-relaxed opacity-70">يتم الاحتساب فور اتصال الزبون بك لطلب القطعة</p>
             </div>
-            <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest mt-6">سجل <span class="text-orange-500">المبيعات</span></h2>
-            <div id="salesList" class="space-y-3"></div>
+            <h2 class="text-xs font-black text-gray-400 tracking-widest uppercase px-1">سجل <span class="text-orange-500">المبيعات</span></h2>
+            <div id="salesList" class="space-y-3">
+                <div class="text-center py-10 text-gray-300 text-xs border border-dashed rounded-[2rem] bg-white">جاري تحميل السجل...</div>
+            </div>
         </section>
         
         <!-- 4. قسم الإعدادات -->
         <section id="view-settings" class="hidden space-y-6 animate-slide-up">
-            <div class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-                <h3 class="font-black text-gray-900 mb-6 flex items-center gap-2 text-sm">
-                    تغيير كلمة <span class="text-orange-500">المرور</span>
-                </h3>
-                <div class="space-y-4">
-                    <input type="password" id="oldPass" placeholder="كلمة المرور الحالية" class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-orange-500 transition-all">
-                    <input type="password" id="newPass" placeholder="الجديدة" class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-orange-500 transition-all">
-                    <button id="btnChangePass" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs shadow-lg hover:bg-black transition-all">حفظ التغييرات</button>
+            <div class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <h3 class="font-black text-gray-900 mb-6 flex items-center gap-2 text-sm uppercase">تغيير كلمة <span class="text-orange-500 italic">المرور</span></h3>
+                <div class="space-y-3">
+                    <input type="password" id="oldPass" placeholder="كلمة المرور الحالية" class="w-full bg-slate-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-orange-500 transition-all">
+                    <input type="password" id="newPass" placeholder="الجديدة" class="w-full bg-slate-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-orange-500 transition-all">
+                    <input type="password" id="confirmPass" placeholder="تأكيد الجديدة" class="w-full bg-slate-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-orange-500 transition-all">
+                    <button id="btnChangePass" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-sm mt-2 hover:bg-black transition-all shadow-lg active:scale-95">حفظ التغييرات</button>
                 </div>
             </div>
-            <button onclick="logoutSeller()" class="w-full py-4 rounded-2xl font-black text-[10px] text-red-400 border border-red-50 hover:bg-red-50 transition-colors">تسجيل الخروج</button>
+
+            <button onclick="logoutSeller()" class="w-full py-4 rounded-2xl font-black text-[10px] text-red-400 border border-red-50 hover:bg-red-50 transition-all uppercase tracking-widest">خروج من الحساب</button>
+
+            <!-- السياسات المنسدلة للتاجر -->
+            <div class="pt-6 text-center">
+                <button onclick="toggleMerchantPolicies()" class="text-gray-400 hover:text-orange-500 text-[10px] font-black uppercase tracking-[0.2em] transition-all inline-flex items-center gap-4 group">
+                    <span class="w-6 h-[1px] bg-gray-200 group-hover:bg-orange-500/50 transition-all"></span>
+                    ميثاق التاجر والسياسات
+                    <span class="w-6 h-[1px] bg-gray-200 group-hover:bg-orange-500/50 transition-all"></span>
+                </button>
+
+                <div id="merchantPolicyBox" class="policy-content-merchant text-right">
+                    <div class="bg-white border border-gray-100 p-6 rounded-[2.5rem] shadow-sm space-y-6">
+                        <div class="border-r-2 border-orange-500 pr-4">
+                            <h4 class="text-[11px] font-black text-gray-900 uppercase mb-1">العمولة والرصيد</h4>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">يتم خصم مبلغ 50 دج عند طلب الزبون لظهور رقمك. هذا المبلغ مقابل خدمة الربط ولا يسترد بعد العملية.</p>
+                        </div>
+                        <div class="border-r-2 border-gray-900 pr-4">
+                            <h4 class="text-[11px] font-black text-gray-900 uppercase mb-1">المصداقية والصور</h4>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">يُمنع استخدام صور وهمية؛ يجب رفع صور حقيقية للقطعة المتوفرة لديك. التلاعب يعرض حسابك للحظر النهائي.</p>
+                        </div>
+                        <div class="border-r-2 border-orange-500 pr-4">
+                            <h4 class="text-[11px] font-black text-gray-900 uppercase mb-1">نظام التقييم</h4>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">سيقيمك الزبائن بعد كل اتصال؛ التقييم الإيجابي يمنح متجرك ثقة أكبر وأولوية في الظهور.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
     </main>
 
     <!-- Bottom Nav -->
     <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-gray-100 shadow-2xl p-2 z-40">
-        <div class="flex justify-around items-center">
-            <button onclick="switchTab('market')" id="nav-market" class="nav-active relative p-3 transition-all">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+        <div class="max-w-md mx-auto flex justify-between items-center px-4">
+            <button onclick="switchTab('market')" id="nav-market" class="nav-active relative p-3 flex flex-col items-center">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
             </button>
-            <button onclick="switchTab('offers')" id="nav-offers" class="text-gray-300 relative p-3 transition-all">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+            <button onclick="switchTab('offers')" id="nav-offers" class="text-gray-300 relative p-3 flex flex-col items-center">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
             </button>
-            <button onclick="switchTab('sales')" id="nav-sales" class="text-gray-300 relative p-3 transition-all">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            <button onclick="switchTab('sales')" id="nav-sales" class="text-gray-300 relative p-3 flex flex-col items-center">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
             </button>
-            <button onclick="switchTab('settings')" id="nav-settings" class="text-gray-300 relative p-3 transition-all">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m12 4a2 2 0 100-4m0 4a2 2 0 110-4m-6 0a2 2 0 100 4m0-4a2 2 0 110 4" /></svg>
+            <button onclick="switchTab('settings')" id="nav-settings" class="text-gray-300 relative p-3 flex flex-col items-center">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
             </button>
         </div>
     </nav>
 
-    <!-- Details Modal (نفس تصميم الصفحة الأولى لضمان الفخامة) -->
+    <!-- Details Modal -->
     <div id="detailsModal" class="fixed inset-0 bg-gray-900/40 backdrop-blur-md z-[100] hidden flex items-end animate-slide-up">
-        <div class="bg-white w-full max-w-md mx-auto rounded-t-[3rem] shadow-2xl overflow-hidden relative border-t border-gray-100">
-            <button onclick="closeDetailsModal()" class="absolute top-6 left-6 bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-orange-500 hover:text-white transition z-20">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-
-            <div class="h-64 bg-slate-50 flex items-center justify-center relative">
+        <div class="bg-white w-full max-w-md mx-auto rounded-t-[3.5rem] shadow-2xl overflow-hidden relative border-t border-gray-100">
+            <button onclick="closeDetailsModal()" class="absolute top-6 left-6 bg-white/80 p-2 rounded-full text-gray-500 hover:bg-orange-500 hover:text-white transition z-20 shadow-sm">✕</button>
+            
+            <div class="h-72 bg-slate-100 flex items-center justify-center relative">
                 <img id="detailImage" src="" class="h-full w-full object-cover">
-                <div id="noImageText" class="hidden text-gray-300 font-black text-[10px] tracking-widest uppercase">No Image</div>
+                <div id="noImageText" class="hidden text-gray-400 font-bold text-xs uppercase tracking-widest">No Image Provided</div>
             </div>
 
             <div class="p-8">
                 <div class="flex justify-between items-start mb-6">
                     <div>
-                        <h2 id="detailPartName" class="text-xl font-black text-gray-900">...</h2>
-                        <p id="detailCarInfo" class="text-orange-500 font-bold text-xs">...</p>
+                        <h2 id="detailPartName" class="text-2xl font-black text-gray-900 leading-tight">...</h2>
+                        <p id="detailCarInfo" class="text-orange-600 font-bold text-xs mt-1">...</p>
                     </div>
-                    <span id="detailTime" class="bg-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-gray-400">...</span>
+                    <span id="detailTime" class="bg-slate-100 px-3 py-1 rounded-full text-[9px] font-black text-gray-400 uppercase tracking-tighter">...</span>
                 </div>
-
-                <div class="bg-orange-50 border border-orange-100 p-5 rounded-[1.5rem] mb-8">
-                    <p class="text-[9px] font-black text-orange-600 uppercase mb-2 tracking-widest">ملاحظات الزبون</p>
+                <div class="bg-orange-50 border border-orange-100 p-5 rounded-3xl mb-8 shadow-inner">
+                    <p class="text-[9px] font-black text-orange-600 uppercase mb-2 tracking-widest">ملاحظات الزبون:</p>
                     <p id="detailNotes" class="text-sm text-gray-700 leading-relaxed font-medium">...</p>
                 </div>
-
-                <button id="btnOpenOffer" class="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-orange-100 hover:bg-orange-500 transition-all active:scale-[0.97]">
-                    تقديم عرض سعر 🏷️
-                </button>
+                <button id="btnOpenOffer" class="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-orange-100 active:scale-[0.97] transition-all">تقديم عرض سعر 🏷️</button>
             </div>
         </div>
     </div>
@@ -194,14 +185,17 @@
     <!-- Offer Modal -->
     <div id="offerModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl animate-slide-up text-center border border-gray-100">
-            <h3 class="font-black text-gray-900 mb-6 uppercase tracking-tighter">سعرك <span class="text-orange-500">المقترح</span></h3>
-            <div class="relative mb-8">
-                <input type="number" id="offerPrice" placeholder="000" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 text-3xl font-black text-center focus:outline-none focus:border-orange-500 transition-all">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-black text-[10px]">DZD</span>
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-black text-gray-900 uppercase tracking-tighter italic">سعرك <span class="text-orange-500">المقترح</span></h3>
+                <button onclick="document.getElementById('offerModal').classList.add('hidden')" class="text-gray-400 bg-gray-50 p-2 rounded-full text-xs">✕</button>
             </div>
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="document.getElementById('offerModal').classList.add('hidden')" class="bg-slate-100 text-gray-500 py-4 rounded-2xl font-bold text-xs">تراجع</button>
-                <button id="sendOfferBtn" class="bg-gray-900 text-white py-4 rounded-2xl font-black text-xs shadow-lg">إرسال العرض</button>
+            <div class="space-y-5">
+                <p id="modalOrderInfo" class="text-[10px] text-gray-400 bg-slate-50 p-2 rounded-xl border border-slate-100">...</p>
+                <div class="relative">
+                    <input type="number" id="offerPrice" placeholder="مثلاً: 5000" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 text-3xl font-black text-center focus:outline-none focus:border-orange-500 transition-all">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-black text-xs">DZD</span>
+                </div>
+                <button id="sendOfferBtn" class="w-full bg-gray-900 text-white font-black py-4 rounded-2xl shadow-lg shadow-gray-200">إرسال العرض</button>
             </div>
         </div>
     </div>
@@ -210,15 +204,21 @@
         function switchTab(tabName) {
             ['market', 'offers', 'sales', 'settings'].forEach(id => {
                 document.getElementById('view-' + id).classList.add('hidden');
-                document.getElementById('nav-' + id).classList.remove('nav-active');
-                document.getElementById('nav-' + id).classList.add('text-gray-300');
+                document.getElementById('nav-' + id).classList.replace('nav-active', 'text-gray-300');
             });
             document.getElementById('view-' + tabName).classList.remove('hidden');
             document.getElementById('nav-' + tabName).classList.add('nav-active');
             document.getElementById('nav-' + tabName).classList.remove('text-gray-300');
         }
         function closeDetailsModal() { document.getElementById('detailsModal').classList.add('hidden'); }
-        window.logoutSeller = () => { if(confirm("هل تريد تسجيل الخروج؟")) { localStorage.removeItem('sellerId'); window.location.href = 'seller-login.html'; } }
+        function toggleMerchantPolicies() {
+            const box = document.getElementById('merchantPolicyBox');
+            box.classList.toggle('open');
+            if(box.classList.contains('open')) {
+                setTimeout(() => { box.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 100);
+            }
+        }
+        window.logoutSeller = () => { if(confirm("خروج؟")) { localStorage.removeItem('sellerId'); window.location.href = 'seller-login.html'; } }
     </script>
     <script type="module" src="./logic.js"></script>
 </body>
