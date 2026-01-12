@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- Configuration ---
@@ -423,21 +423,51 @@ if (trackBtn) {
                             const offerDataStr = encodeURIComponent(JSON.stringify({...o, id: offerId}));
                             const ratingBoxId = `rating-${o.sellerId}-${offerId}`;
                             
+                                                        // تصميم الزر الجديد (أصغر قليلاً وأكثر نعومة)
                             const actionButtonHtml = `
-<button onclick="openCustomerOfferDetails('${offerDataStr}')" 
-class="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-orange-900/20 active:scale-95 transition-all text-sm mt-4">
-    عرض تفاصيل القطعة
-</button>`;
-
+                            <button onclick="openCustomerOfferDetails('${offerDataStr}')" 
+                            class="group w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm">
+                                <span>عرض التفاصيل والصور</span>
+                                <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </button>`;
+                            
+                            // تصميم البطاقة الجديد
                             list.innerHTML += `
-                            <div class="bg-white p-5 rounded-2xl border border-gray-100 mb-4 shadow-sm hover:shadow-md transition">
-                                <div class="flex justify-between items-start mb-2">
-                                    <div>
-                                        <h4 class="font-bold text-gray-900">${o.sellerName}</h4>
-                                        <div id="${ratingBoxId}" class="mt-1"></div>
-                                        <p class="text-[10px] text-gray-400 mt-1">حالة: <span class="text-gray-800 font-medium">${o.condition || 'غير محدد'}</span></p>
+                            <div class="bg-white p-4 rounded-2xl border border-gray-100 mb-4 shadow-sm hover:shadow-md transition duration-300 relative overflow-hidden">
+                                
+                                <!-- الجزء العلوي: المعلومات والسعر -->
+                                <div class="flex justify-between items-start mb-3">
+                                    
+                                    <!-- اليمين: معلومات البائع -->
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center gap-1">
+                                            <h4 class="font-bold text-gray-900 text-base">${o.sellerName}</h4>
+                                            <svg class="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                        </div>
+                                        
+                                        <!-- التقييم -->
+                                        <div id="${ratingBoxId}" class="origin-right scale-95 -mr-1"></div>
+
+                                        <!-- حالة القطعة (Badge) -->
+                                        <div class="mt-1">
+                                            <span class="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded text-[10px] text-gray-500">
+                                                <span>حالة:</span>
+                                                <span class="font-bold text-gray-800">${o.condition || 'غير محدد'}</span>
+                                            </span>
+                                        </div>
                                     </div>
-                                    <span class="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg font-bold text-lg">${o.price} DA</span>
+
+                                    <!-- اليسار: السعر -->
+                                    <div class="text-left flex flex-col items-end">
+                                        <span class="block text-2xl font-black text-orange-600 tracking-tight leading-none">${o.price}</span>
+                                        <span class="text-[10px] text-gray-400 font-bold uppercase mt-1">DZD / دينار</span>
+                                    </div>
+                                </div>
+
+                                <!-- فاصل -->
+                                <div class="h-px w-full bg-gray-50 mb-3"></div>
+
+                                <!-- الزر في الأسفل -->
                                 ${actionButtonHtml}
                             </div>`;
                             
@@ -581,7 +611,54 @@ if (document.getElementById('headerShopName')) {
         });
         startListeners();
         setupChangePassword();
+        setupBalanceRequest(); // <-- (وظيفة جديدة)
     }
+
+    // --- الوظيفة الجديدة: إعداد زر طلب الرصيد ---
+    function setupBalanceRequest() {
+        const btnSendReq = document.getElementById('btnRequestBalance');
+        const amountInput = document.getElementById('reqAmount');
+        const receiptInput = document.getElementById('reqReceiptImage'); 
+        
+        if (btnSendReq) {
+            btnSendReq.addEventListener('click', async () => {
+                const amount = parseInt(amountInput.value);
+                if (!amount || amount <= 0) return alert("يرجى إدخال مبلغ صحيح");
+                
+                const originalText = btnSendReq.innerText;
+                btnSendReq.innerText = "جاري الإرسال...";
+                btnSendReq.disabled = true;
+                
+                try {
+                    let receiptBase64 = null;
+                    if (receiptInput && receiptInput.files[0]) {
+                        receiptBase64 = await compressImage(receiptInput.files[0]);
+                    }
+                    
+                    await addDoc(collection(db, "balance_requests"), {
+                        sellerId: currentSellerId,
+                        shopName: currentSellerData.shopName,
+                        phone: currentSellerData.phone,
+                        amount: amount,
+                        receiptImage: receiptBase64, 
+                        status: "pending", 
+                        createdAt: serverTimestamp()
+                    });
+                    
+                    alert("✅ تم إرسال طلب الشحن للإدارة بنجاح!");
+                    amountInput.value = "";
+                    if (receiptInput) receiptInput.value = "";
+                    
+                } catch (e) {
+                    console.error(e);
+                    alert("حدث خطأ أثناء الإرسال: " + e.message);
+                } finally {
+                    btnSendReq.innerText = originalText;
+                    btnSendReq.disabled = false;
+                }
+            });
+        }
+    }  
 
     function startListeners() {
         onSnapshot(query(collection(db, "offers"), where("sellerId", "==", currentSellerId)), (snap) => {
@@ -838,19 +915,49 @@ if (document.getElementById('headerShopName')) {
     window.deleteMyOffer = async (id) => { if(confirm("سحب العرض؟")) await deleteDoc(doc(db, "offers", id)); };
 
     function setupChangePassword() {
-        const btn = document.getElementById('btnChangePass');
-        if(btn) {
-            btn.addEventListener('click', async () => {
-                const newPass = document.getElementById('newPass').value;
-                if(!newPass) return alert("أدخل كلمة المرور");
-                try {
-                    await updateDoc(doc(db, "sellers", currentSellerId), { password: newPass });
-                    alert("تم التغيير");
-                    document.getElementById('newPass').value = "";
-                } catch(e) { alert(e.message); }
-            });
-        }
+    const btn = document.getElementById('btnChangePass');
+    if (btn) {
+        btn.addEventListener('click', async () => {
+            const newPass = document.getElementById('newPass').value;
+            
+            // التحقق من قوة كلمة السر (فايربيس يطلب 6 أحرف على الأقل)
+            if (!newPass || newPass.length < 6) {
+                return alert("كلمة المرور يجب أن تكون 6 أحرف أو أكثر.");
+            }
+            
+            // التأكد من أن المستخدم مسجل دخول حالياً
+            const user = auth.currentUser;
+            if (!user) return alert("يرجى إعادة تسجيل الدخول للمتابعة.");
+            
+            // تغيير نص الزر وتعطيله
+            const originalText = btn.innerText;
+            btn.innerText = "جاري التحديث...";
+            btn.disabled = true;
+            
+            try {
+                // التحديث الآمن في نظام المصادقة
+                await updatePassword(user, newPass);
+                
+                alert("✅ تم تغيير كلمة المرور بنجاح!");
+                document.getElementById('newPass').value = "";
+                
+            } catch (error) {
+                console.error("Error updating password:", error);
+                
+                // هذا الخطأ يظهر إذا مر وقت طويل على تسجيل الدخول (إجراء أمني من جوجل)
+                if (error.code === 'auth/requires-recent-login') {
+                    alert("⚠️ لأسباب أمنية، يجب عليك تسجيل الخروج ثم الدخول مرة أخرى لتتمكن من تغيير كلمة المرور.");
+                } else {
+                    alert("حدث خطأ: " + error.message);
+                }
+            } finally {
+                // إعادة الزر لوضعه الطبيعي
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
     }
+}
 
     function timeAgo(t) {
         if(!t) return "";
@@ -1042,6 +1149,8 @@ if (btnAdminLogin) {
         } else { alert("خطأ"); }
     });
 
+    // تم نقل الكود إلى داخل دالة initAdminPanel للحفاظ على النسق وتنظيم الأدمن
+    
     function initAdminPanel() {
         // مخزن البيانات المحلي (لأجل البحث السريع)
         let state = {
@@ -1242,6 +1351,52 @@ if (btnAdminLogin) {
             state.requests = snap.docs.map(d => ({id: d.id, data: d.data()}));
             performGlobalSearch();
         });
+
+        // هـ) <-- وظيفة جديدة: جلب طلبات الشحن
+        onSnapshot(query(collection(db, "balance_requests"), where("status", "==", "pending")), (snap) => {
+            const list = document.getElementById('adminBalanceRequestsList'); 
+            const counter = document.getElementById('statBalance');
+            if(counter) counter.innerText = snap.size > 0 ? snap.size : '--';
+            
+            if (!list) return;
+            
+            list.innerHTML = "";
+            if (snap.empty) {
+                list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4">لا توجد طلبات شحن</p>`;
+                return;
+            }
+            
+            snap.forEach(docSnap => {
+                const r = docSnap.data();
+                const reqId = docSnap.id;
+                // عرض صورة الوصل إن وجدت
+                const imgHtml = r.receiptImage ?
+                    `<div class="mb-2"><img src="${r.receiptImage}" class="h-16 rounded border border-gray-500 cursor-zoom-in" onclick="window.open(this.src)"></div>` :
+                    `<div class="text-[10px] text-gray-400 mb-2">بدون صورة وصل</div>`;
+                
+                list.innerHTML += `
+                <div class="bg-slate-700 p-3 rounded-xl border border-slate-600 mb-2 animate-slide-up">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-white text-sm">🏪 ${r.shopName}</p>
+                            <p class="text-xs text-blue-300 font-mono">📱 ${r.phone}</p>
+                            <p class="text-green-400 font-bold text-lg mt-1">💰 طلب: ${r.amount} DA</p>
+                        </div>
+                        ${imgHtml}
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="adminApproveTopUp('${reqId}', '${r.sellerId}', ${r.amount})" 
+                            class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 rounded transition">
+                            ✅ قبول وشحن
+                        </button>
+                        <button onclick="adminRejectTopUp('${reqId}')" 
+                            class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-xs py-2 rounded transition">
+                            ❌ رفض
+                        </button>
+                    </div>
+                </div>`;
+            });
+        });
     }
 
     // --- دوال الأدمن المساعدة ---
@@ -1277,5 +1432,33 @@ if (btnAdminLogin) {
         if(!confirm("حذف هذا الطلب؟")) return;
         await deleteDoc(doc(db, "sellers", id));
         alert("تم الحذف");
+    };
+
+    // --- الوظائف الجديدة: التحكم في طلبات الشحن ---
+    window.adminApproveTopUp = async (reqId, sellerId, amount) => {
+        if(!confirm(`هل أنت متأكد من شحن ${amount} DA لهذا التاجر؟`)) return;
+        try {
+            const batch = writeBatch(db);
+            // 1. تحديث حالة الطلب
+            batch.update(doc(db, "balance_requests", reqId), { status: 'approved', processedAt: serverTimestamp() });
+            // 2. إضافة الرصيد للتاجر
+            batch.update(doc(db, "sellers", sellerId), { balance: increment(amount) });
+            await batch.commit();
+            alert("تم شحن الرصيد بنجاح ✅");
+        } catch(e) { 
+            console.error(e); 
+            alert("خطأ أثناء العملية: " + e.message); 
+        }
+    };
+
+    window.adminRejectTopUp = async (reqId) => {
+        if(!confirm("هل تريد رفض هذا الطلب؟")) return;
+        try {
+            await updateDoc(doc(db, "balance_requests", reqId), { status: 'rejected', processedAt: serverTimestamp() });
+            alert("تم رفض الطلب ❌");
+        } catch(e) {
+            console.error(e);
+            alert("حدث خطأ.");
+        }
     };
 }
