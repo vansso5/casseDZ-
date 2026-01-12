@@ -1,18 +1,20 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- Configuration ---
 const firebaseConfig = {
-  apiKey: "AIzaSyDLNY-Uya4tpZSplAqhpsmxgOrwlQMFODI",
-  authDomain: "casse-auto-8ef9a.firebaseapp.com",
-  databaseURL: "https://casse-auto-8ef9a-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "casse-auto-8ef9a",
-  storageBucket: "casse-auto-8ef9a.firebasestorage.app",
-  messagingSenderId: "257994887284",
-  appId: "1:257994887284:web:16e6006f68520fbbc94121"
+    apiKey: "AIzaSyDLNY-Uya4tpZSplAqhpsmxgOrwlQMFODI",
+    authDomain: "casse-auto-8ef9a.firebaseapp.com",
+    databaseURL: "https://casse-auto-8ef9a-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "casse-auto-8ef9a",
+    storageBucket: "casse-auto-8ef9a.firebasestorage.app",
+    messagingSenderId: "257994887284",
+    appId: "1:257994887284:web:16e6006f68520fbbc94121"
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app); // تفعيل المصادقة
 const db = getFirestore(app);
 
 // ============================================================
@@ -50,7 +52,6 @@ window.openLightbox = (src) => {
 };
 
 // --- 2. دالة ضغط الصور (الحل لمشكلة الحجم الكبير) ---
-// هذه الدالة تأخذ الملف وتقوم بتصغير أبعاده وتقليل جودته ليصبح صغيراً جداً
 const compressImage = (file) => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -60,11 +61,9 @@ const compressImage = (file) => {
             img.src = event.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                // تحديد عرض أقصى 800 بكسل
                 const MAX_WIDTH = 800;
                 const scaleSize = MAX_WIDTH / img.width;
                 
-                // إذا كانت الصورة أصغر لا نكبرها
                 if (img.width > MAX_WIDTH) {
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
@@ -75,15 +74,13 @@ const compressImage = (file) => {
                 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // التحويل إلى JPEG بجودة 0.6 (60%) لتقليل الحجم
                 resolve(canvas.toDataURL('image/jpeg', 0.6));
             };
         };
     });
 };
 
-// --- 3. مودال التقييم الفوري (بعد الاتصال) ---
+// --- 3. مودال التقييم الفوري ---
 function createPostCallRatingModal(sellerId, orderId) {
     const old = document.getElementById('postCallRatingModal');
     if(old) old.remove();
@@ -148,7 +145,6 @@ function createPostCallRatingModal(sellerId, orderId) {
             });
             alert("شكراً لك! تم التقييم بنجاح.");
             document.getElementById('postCallRatingModal').remove();
-            // تحديث القائمة لإظهار التقييم
             const trackBtn = document.getElementById('trackBtn');
             if(trackBtn) trackBtn.click();
         } catch(e) {
@@ -172,7 +168,6 @@ function createCustomerOfferModal() {
             </button>
             <div class="p-6 pt-12">
                 <h3 class="text-2xl font-bold mb-4 text-center text-gray-900" id="custModalTitle">تفاصيل العرض</h3>
-                <!-- تقييم البائع داخل المودال -->
                 <div id="custModalSellerRating" class="text-center mb-4"></div>
 
                 <div id="custModalImages" class="flex overflow-x-auto gap-3 mb-6 snap-x py-2 hide-scrollbar min-h-[120px] bg-gray-50 rounded-xl items-center p-2"></div>
@@ -199,7 +194,7 @@ function createCustomerOfferModal() {
 }
 createCustomerOfferModal();
 
-// --- 5. دالة مساعدة لجلب وعرض التقييم (Async) ---
+// --- 5. دالة مساعدة لجلب وعرض التقييم ---
 async function updateRatingUI(sellerId, elementId) {
     try {
         const q = query(collection(db, "ratings"), where("sellerId", "==", sellerId));
@@ -225,7 +220,7 @@ async function updateRatingUI(sellerId, elementId) {
     } catch(e) { console.error("Rating Error", e); }
 }
 
-// --- 6. دالة معاينة الصور للبائع (بدون ضغط، للعرض فقط) ---
+// --- 6. دالة معاينة الصور للبائع ---
 window.previewThumb = (input) => {
     const num = input.id.slice(-1); 
     const thumbId = 'thumb' + num;
@@ -256,7 +251,6 @@ if (fileInput) {
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
-            // هنا نستخدم دالة الضغط بدلاً من القراءة المباشرة
             try {
                 uploadedImageBase64 = await compressImage(file);
                 if(imagePreview && uploadPlaceholder) {
@@ -272,7 +266,6 @@ if (fileInput) {
     });
 }
 
-// --- إعادة تعيين نموذج الزبون (window.resetCustomerForm) ---
 window.resetCustomerForm = () => {
     document.getElementById('carMake').value = "";
     document.getElementById('carModel').value = "";
@@ -281,23 +274,20 @@ window.resetCustomerForm = () => {
     if(document.getElementById('partNotes')) document.getElementById('partNotes').value = "";
     document.getElementById('phoneNumber').value = "";
     
-    // تصفير الصورة
     uploadedImageBase64 = null;
     if (fileInput) fileInput.value = "";
     if (imagePreview) { imagePreview.src = ""; imagePreview.classList.add('hidden'); }
     if (uploadPlaceholder) uploadPlaceholder.classList.remove('hidden');
 
-    // إعادة توجيه الشاشات
     safeToggle('successScreen', 'hide');
     safeToggle('dashboardSection', 'hide');
-    safeToggle('loginSection', 'show'); // إظهار قسم التتبع كخيار
-    safeToggle('formScreen', 'show'); // العودة للنموذج
+    safeToggle('loginSection', 'show');
+    safeToggle('formScreen', 'show');
     
     const submitBtn = document.getElementById('submitBtn');
     if(submitBtn) { submitBtn.disabled = false; submitBtn.innerText = "إرسال الطلب"; }
 };
 
-// ربط زر "طلب جديد" بالدالة
 const btnNewOrder = document.getElementById('btnNewOrder') || document.getElementById('backToFormBtn'); 
 if(btnNewOrder) {
     btnNewOrder.addEventListener('click', window.resetCustomerForm);
@@ -318,7 +308,6 @@ if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerText = "جاري الإرسال...";
 
-        // توليد كود عشوائي من 4 أرقام
         const generatedCode = Math.floor(1000 + Math.random() * 9000).toString();
 
         try {
@@ -328,11 +317,9 @@ if (submitBtn) {
                 status: "active", createdAt: serverTimestamp()
             });
 
-            // إخفاء شاشة النموذج
             safeToggle('formScreen', 'hide');
             safeToggle('successScreen', 'show');
 
-            // --- تصميم رسالة النجاح ---
             const successDiv = document.getElementById('successScreen');
             if(successDiv) {
             successDiv.innerHTML = `
@@ -408,7 +395,6 @@ if (trackBtn) {
                 const titleEl = document.getElementById('orderTitle');
                 if(titleEl) titleEl.innerText = orderDoc.data().partName;
 
-                // مراقبة العروض
                 onSnapshot(query(collection(db, "offers"), where("orderId", "==", orderId)), (offerSnap) => {
                     const list = document.getElementById('offersList');
                     if(!list) return;
@@ -451,8 +437,7 @@ class="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bla
                                         <div id="${ratingBoxId}" class="mt-1"></div>
                                         <p class="text-[10px] text-gray-400 mt-1">حالة: <span class="text-gray-800 font-medium">${o.condition || 'غير محدد'}</span></p>
                                     </div>
-                                    <span class="bg-brand-50 text-brand-600 px-3 py-1 rounded-lg font-bold text-sm">${o.price} DA</span>
-                                </div>
+                                    <span class="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-lg font-bold text-lg">${o.price} DA</span>
                                 ${actionButtonHtml}
                             </div>`;
                             
@@ -475,7 +460,6 @@ class="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bla
         document.getElementById('custModalNotes').innerText = offer.notes || "لا توجد ملاحظات";
         document.getElementById('custModalPrice').innerText = offer.price + " DA";
 
-        // عرض تقييم البائع داخل المودال
         const modalRatingId = `modal-rating-${offer.sellerId}`;
         ratingContainer.innerHTML = `<div id="${modalRatingId}" class="flex justify-center"></div>`;
         updateRatingUI(offer.sellerId, modalRatingId);
@@ -870,36 +854,56 @@ if (document.getElementById('headerShopName')) {
 }
 
 // ============================================================
-// 3. تسجيل الدخول والتسجيل (LOGIN & REGISTER)
+// 3. تسجيل الدخول والتسجيل (LOGIN & REGISTER) - معدل لاستخدام الإيميل والتحقق
 // ============================================================
 
 const sellerLoginBtn = document.getElementById('sellerLoginBtn');
 if (sellerLoginBtn) {
     sellerLoginBtn.addEventListener('click', async () => {
-        const phone = document.getElementById('loginPhone').value;
+        // تم التعديل: الاعتماد على الإيميل
+        const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
         
-        const q = query(collection(db, "sellers"), where("phone", "==", phone), where("password", "==", password));
-        const snap = await getDocs(q);
-        
-        if (!snap.empty) {
-            const data = snap.docs[0].data();
-            if (data.isBlocked) { alert("⛔ حسابك محظور من قبل الإدارة."); return; }
-            if (data.isVerified === false) {
-                alert("⏳ حسابك قيد المراجعة.\nيرجى انتظار موافقة الإدارة.");
-                return;
+        if(!email || !password) return alert("يرجى ملء الحقول");
+
+        sellerLoginBtn.innerText = "جاري الدخول...";
+        sellerLoginBtn.disabled = true;
+
+        try {
+            // تسجيل الدخول باستخدام Firebase Auth
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // التحقق من بيانات البائع في Firestore
+            const docRef = doc(db, "sellers", user.uid);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.isBlocked) { 
+                    alert("⛔ حسابك محظور من قبل الإدارة."); 
+                    await signOut(auth);
+                } else if (data.isVerified === false) {
+                    alert("⏳ حسابك قيد المراجعة.\nيرجى انتظار موافقة الإدارة.");
+                    await signOut(auth);
+                } else {
+                    localStorage.setItem('sellerId', user.uid);
+                    window.location.href = "dash.html"; 
+                }
+            } else {
+                alert("بيانات البائع غير موجودة");
+                await signOut(auth);
             }
-            localStorage.setItem('sellerId', snap.docs[0].id);
-            window.location.href = "dash.html"; 
-        } else {
-            alert("خطأ في رقم الهاتف أو كلمة المرور");
+        } catch (error) {
+            console.error(error);
+            alert("خطأ في البريد الإلكتروني أو كلمة المرور");
         }
+        sellerLoginBtn.innerText = "تسجيل الدخول";
+        sellerLoginBtn.disabled = false;
     });
 }
 
-// ------------------------------------------------------------------
-// ميزة معاينة صورة التسجيل (تمت الإضافة لحل المشكلة الأولى)
-// ------------------------------------------------------------------
+// ميزة معاينة صورة التسجيل
 const regImgInput = document.getElementById('regShopImage');
 if(regImgInput) {
     regImgInput.addEventListener('change', function(e) {
@@ -922,116 +926,92 @@ if(regImgInput) {
 
 const btnRegister = document.getElementById('btnRegister');
 if (btnRegister) {
-btnRegister.addEventListener('click', async () => {
-const shopName = document.getElementById('regShopName').value;
-const phone = document.getElementById('regPhone').value;
-const password = document.getElementById('regPassword').value;
-const wilaya = document.getElementById('regWilaya').value;
-const baladiya = document.getElementById('regBaladiya').value;
-const fileInput = document.getElementById('regShopImage');
+    btnRegister.addEventListener('click', async () => {
+        const shopName = document.getElementById('regShopName').value;
+        const phone = document.getElementById('regPhone').value; // يبقى الهاتف للتواصل
+        const email = document.getElementById('regEmail').value; // تم إضافة الإيميل
+        const password = document.getElementById('regPassword').value;
+        const wilaya = document.getElementById('regWilaya').value;
+        const baladiya = document.getElementById('regBaladiya').value;
+        const fileInput = document.getElementById('regShopImage');
 
-if (!shopName || !phone || !password || !wilaya || !baladiya) {
-alert("يرجى ملء جميع البيانات"); return;
-}
-if (!fileInput.files || !fileInput.files[0]) {
-alert("صورة المحل إجبارية"); return;
-}
+        if (!shopName || !phone || !email || !password || !wilaya || !baladiya) {
+            alert("يرجى ملء جميع البيانات"); return;
+        }
+        if (!fileInput.files || !fileInput.files[0]) {
+            alert("صورة المحل إجبارية"); return;
+        }
 
-const originalText = btnRegister.innerText;
-btnRegister.innerText = "جاري معالجة الصورة...";
-btnRegister.disabled = true;
+        const originalText = btnRegister.innerText;
+        btnRegister.innerText = "جاري الإنشاء...";
+        btnRegister.disabled = true;
 
-try {
-const q = query(collection(db, "sellers"), where("phone", "==", phone));
-const snap = await getDocs(q);
-if (!snap.empty) {
-alert("رقم الهاتف هذا مسجل بالفعل");
-btnRegister.disabled = false;
-btnRegister.innerText = originalText;
-return;
-}
+        try {
+            const file = fileInput.files[0];
+            const compressedBase64 = await compressImage(file);
 
-const file = fileInput.files[0];
+            // 1. إنشاء الحساب في Authentication
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
 
-// 1. ضغط الصورة قبل الرفع (لتفادي مشكلة الحجم)
-try {
-const compressedBase64 = await compressImage(file);
+            // 2. حفظ البيانات في Firestore (باستخدام UID كمعرف)
+            await setDoc(doc(db, "sellers", user.uid), {
+                shopName: shopName,
+                phone: phone,
+                email: email,
+                wilaya: wilaya,
+                baladiya: baladiya,
+                shopImage: compressedBase64,
+                balance: 1500,
+                isBlocked: false,
+                isVerified: false, // غير مفعل حتى يراجعه الأدمن
+                createdAt: serverTimestamp()
+            });
 
-// 2. إرسال البيانات (مع الصورة المضغوطة)
-await addDoc(collection(db, "sellers"), {
-shopName: shopName,
-phone: phone,
-password: password,
-wilaya: wilaya,
-baladiya: baladiya,
-shopImage: compressedBase64,
-balance: 1500,
-isBlocked: false,
-isVerified: false, // غير مفعل حتى يراجعه الأدمن
-createdAt: serverTimestamp()
-});
+            alert("✅ تم إرسال طلبك بنجاح!\nسيتم تفعيل حسابك من قبل الإدارة بعد مراجعة بياناتك.");
 
-// 3. رسالة النجاح (بدلاً من الدخول المباشر)
-alert("✅ تم إرسال طلبك بنجاح!\nسيتم تفعيل حسابك من قبل الإدارة بعد مراجعة و الاتصال بك.\n(لن تتمكن من الدخول حتى تتم عملية التئكيد.).");
+            // تنظيف الحقول
+            document.getElementById('regShopName').value = "";
+            document.getElementById('regPhone').value = "";
+            document.getElementById('regEmail').value = "";
+            document.getElementById('regPassword').value = "";
+            document.getElementById('regWilaya').value = "";
+            document.getElementById('regBaladiya').value = "";
+            fileInput.value = "";
+            const preview = document.getElementById('regImgPreview');
+            if(preview) preview.remove();
 
-// 4. تنظيف الحقول والعودة لشاشة الدخول
-document.getElementById('regShopName').value = "";
-document.getElementById('regPhone').value = "";
-document.getElementById('regPassword').value = "";
-document.getElementById('regWilaya').value = "";
-document.getElementById('regBaladiya').value = "";
-fileInput.value = "";
-// إزالة معاينة الصورة إن وجدت
-const preview = document.getElementById('regImgPreview');
-if(preview) preview.remove();
+            if (window.showLogin) window.showLogin();
 
-if (window.showLogin) window.showLogin();
-
-} catch (err) {
-console.error(err);
-alert("فشل في معالجة الصورة، يرجى المحاولة بصورة أخرى.");
-}
-
-} catch (e) {
-console.error(e);
-alert("حدث خطأ في النظام: " + e.message);
-} finally {
-btnRegister.disabled = false;
-btnRegister.innerText = originalText;
-}
-});
+        } catch (e) {
+            console.error(e);
+            alert("حدث خطأ: " + e.message);
+        } finally {
+            btnRegister.disabled = false;
+            btnRegister.innerText = originalText;
+        }
+    });
 }
 
 const btnSendReset = document.getElementById('btnSendReset');
 if (btnSendReset) {
     btnSendReset.addEventListener('click', async () => {
-        const phone = document.getElementById('forgotPhone').value.trim();
-        if (!phone) { alert("أدخل رقم الهاتف"); return; }
+        // تم التعديل: استعادة كلمة السر بالإيميل
+        const email = document.getElementById('forgotEmail').value.trim();
+        if (!email) { alert("أدخل البريد الإلكتروني"); return; }
         
         const btn = btnSendReset;
         const originalText = btn.innerText;
-        btn.innerText = "جاري التحقق...";
+        btn.innerText = "جاري الإرسال...";
         btn.disabled = true;
         
         try {
-            const sellersRef = collection(db, "sellers");
-            const q = query(sellersRef, where("phone", "==", phone));
-            const snapshot = await getDocs(q);
-            
-            if (snapshot.empty) {
-                alert("عذراً، هذا الرقم غير موجود.");
-            } else {
-                await addDoc(collection(db, "admin_requests"), {
-                    type: "password_reset",
-                    phone: phone,
-                    createdAt: serverTimestamp()
-                });
-                alert("تم التحقق من حسابك.\nتم إرسال طلب استعادة كلمة المرور للإدارة.");
-                document.getElementById('forgotModal').classList.add('hidden');
-            }
+            await sendPasswordResetEmail(auth, email);
+            alert("تم إرسال رابط إعادة تعيين كلمة السر إلى بريدك الإلكتروني.");
+            document.getElementById('forgotModal').classList.add('hidden');
         } catch (e) {
             console.error(e);
-            alert("حدث خطأ في الاتصال: " + e.message);
+            alert("حدث خطأ: " + e.message);
         } finally {
             btn.innerText = originalText;
             btn.disabled = false;
@@ -1040,7 +1020,7 @@ if (btnSendReset) {
 }
 
 // ============================================================
-// 4. منطق الأدمن (ADMIN) - تم التحديث لدعم البحث الشامل
+// 4. منطق الأدمن (ADMIN)
 // ============================================================
 const btnAdminLogin = document.getElementById('btnAdminLogin');
 if (btnAdminLogin) {
@@ -1219,33 +1199,27 @@ if (btnAdminLogin) {
         onSnapshot(query(collection(db, "sellers"), where("isVerified", "==", false)), (snap) => {
             const el = document.getElementById('statPending'); if(el) el.innerText = snap.size;
             state.pending = snap.docs.map(d => ({id: d.id, data: d.data()}));
-            performGlobalSearch(); // إعادة الرسم مع تطبيق البحث الحالي إن وجد
+            performGlobalSearch();
         });
 
-        // ب) جلب الطلبات
         // ب) جلب الطلبات (تم التعديل: إخفاء المباع)
-onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
-    // 1. فلترة البيانات لاستبعاد الطلبات التي حالتها 'sold'
-    const activeOrders = snap.docs
-        .map(d => ({ id: d.id, data: d.data() }))
-        .filter(item => item.data.status !== 'sold');
-    
-    // 2. تحديث العداد بالرقم الجديد
-    const el = document.getElementById('statOrders');
-    if (el) el.innerText = activeOrders.length;
-    
-    // 3. التخزين والعرض
-    state.orders = activeOrders;
-    performGlobalSearch();
-});
+        onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
+            const activeOrders = snap.docs
+                .map(d => ({ id: d.id, data: d.data() }))
+                .filter(item => item.data.status !== 'sold');
+            
+            const el = document.getElementById('statOrders');
+            if (el) el.innerText = activeOrders.length;
+            
+            state.orders = activeOrders;
+            performGlobalSearch();
+        });
 
         // ج) جلب التجار النشطين
         onSnapshot(collection(db, "sellers"), (snap) => {
-            // نحسب فقط المعتمدين للإحصائية
             const verifiedCount = snap.docs.filter(d => d.data().isVerified).length;
             const el = document.getElementById('statSellers'); if(el) el.innerText = verifiedCount;
             
-            // نخزن فقط المعتمدين في قائمة التجار (لأن غير المعتمدين في قائمة الانتظار)
             state.sellers = snap.docs
                 .map(d => ({id: d.id, data: d.data()}))
                 .filter(item => item.data.isVerified === true);
@@ -1261,15 +1235,9 @@ onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap)
     }
 
     // --- دوال الأدمن المساعدة ---
+    // (تنبيه: بما أننا نستخدم Authentication، فإن كشف كلمة المرور لم يعد ممكناً لأنها مشفرة)
     window.adminRevealPass = async (phone) => {
-        try {
-            const q = query(collection(db, "sellers"), where("phone", "==", phone));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                const pass = querySnapshot.docs[0].data().password;
-                prompt("كلمة المرور لهذا الحساب هي (قم بالنسخ):", pass);
-            } else { alert("لم يتم العثور على حساب بهذا الرقم."); }
-        } catch (e) { console.error(e); alert("حدث خطأ"); }
+        alert("تنبيه: النظام يعمل الآن بنظام المصادقة الآمنة.\nكلمات المرور مشفرة ولا يمكن كشفها.\nيرجى استخدام زر استعادة كلمة السر في صفحة الدخول.");
     };
 
     window.adminDeleteDoc = async (c, i) => { if(confirm("حذف الطلب؟")) await deleteDoc(doc(db, c, i)); };
@@ -1289,7 +1257,6 @@ onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap)
         } catch (error) { console.error(error); alert("خطأ: " + error.message); }
     };
 
-    // دوال قبول ورفض البائعين
     window.adminApproveSeller = async (id) => {
         if(!confirm("تفعيل هذا البائع؟")) return;
         await updateDoc(doc(db, "sellers", id), { isVerified: true });
