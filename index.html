@@ -3,217 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>طلب قطعة غيار | La Casse DZ</title>
+    <title>الرئيسية | La Casse Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
-                    colors: { brand: { 500: '#FF6B00', 600: '#E65100', 900: '#111827' } },
-                    animation: {
-                        'fade-in': 'fadeIn 0.3s ease-out forwards',
-                        'slide-up': 'slideUp 0.4s ease-out forwards'
-                    },
-                    keyframes: {
-                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style> 
-        body { font-family: 'Tajawal', sans-serif; background-color: #f9fafb; } 
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        body { font-family: 'Tajawal', sans-serif; background-color: #0f172a; } 
+        
+        /* أنيميشن خفيف للخلفية */
+        @keyframes float {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .blob { animation: float 7s infinite ease-in-out; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col relative">
+<body class="text-white min-h-screen flex flex-col justify-center items-center relative overflow-hidden selection:bg-orange-500 selection:text-white p-4">
 
-    <!-- ========================================== -->
-    <!-- 1. الهيدر (رأس الصفحة) - تم التعديل هنا -->
-    <!-- ========================================== -->
-    <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
-        <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
-            <!-- الشعار -->
-            <div class="flex items-center gap-2">
-                <div class="bg-brand-50 text-brand-600 p-2 rounded-xl">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                </div>
-                <h1 class="text-xl font-bold text-gray-800 tracking-tight">La Casse <span class="text-brand-600">Pro</span></h1>
-            </div>
-
-            <!-- الأزرار (زر الورشات الجديد + زر التتبع) -->
-            <div class="flex items-center gap-2">
-                <!-- زر دعوة الورشات -->
-                <button onclick="document.getElementById('merchantModal').classList.remove('hidden')" class="text-xs font-bold text-white bg-gray-900 px-3 py-2 rounded-lg hover:bg-gray-800 transition flex items-center gap-1 shadow-md">
-                    <span>🔧</span>
-                    <span class="hidden sm:inline">أصحاب الورشات</span>
-                    <span class="sm:hidden">تجار</span>
-                </button>
-                
-                <!-- زر تتبع الطلب (يوجه لصفحة التتبع) -->
-                <a href="track.html" class="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </a>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-md mx-auto p-4 w-full flex-1">
-        
-        <!-- 2. شاشة النجاح (مخفية افتراضياً) -->
-        <div id="successScreen" class="hidden flex flex-col items-center justify-center py-10 animate-fade-in">
-            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            </div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">تم إرسال الطلب بنجاح!</h2>
-            <p class="text-gray-500 text-sm text-center mb-6 px-4">تم تعميم طلبك على البائعين. احتفظ بهذا الرمز السري لمتابعة العروض:</p>
-            
-            <div class="bg-white p-6 rounded-2xl border-2 border-dashed border-brand-200 w-full text-center mb-6">
-                <span class="text-gray-400 text-xs block mb-1">الرقم السري الخاص بك</span>
-                <span id="secretCodeDisplay" class="text-4xl font-mono font-bold text-brand-600 tracking-widest">---</span>
-            </div>
-            
-            <button onclick="location.reload()" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg">
-                طلب قطعة أخرى
-            </button>
-        </div>
-
-        <!-- 3. استمارة الطلب (الظاهرة افتراضياً) -->
-        <div id="formScreen" class="animate-slide-up">
-            <div class="mb-6">
-                <h2 class="text-xl font-bold text-gray-900">معلومات القطعة</h2>
-                <p class="text-gray-400 text-xs mt-1">يرجى تعبئة المعلومات بدقة لتسهيل البحث</p>
-            </div>
-
-            <form id="orderForm" class="space-y-4">
-                
-                <!-- المركبة والموديل -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition">
-                        <label class="block text-[10px] font-bold text-gray-400 mb-1">المركبة (Marque)</label>
-                        <input type="text" id="carMake" placeholder="Renault" class="w-full text-sm font-bold text-gray-800 bg-transparent focus:outline-none">
-                    </div>
-                    <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition">
-                        <label class="block text-[10px] font-bold text-gray-400 mb-1">الموديل (Modèle)</label>
-                        <input type="text" id="carModel" placeholder="Clio 4" class="w-full text-sm font-bold text-gray-800 bg-transparent focus:outline-none">
-                    </div>
-                </div>
-
-                <!-- السنة واسم القطعة -->
-                <div class="grid grid-cols-3 gap-3">
-                    <div class="col-span-1 bg-white p-3 rounded-xl border border-gray-100 shadow-sm focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition">
-                        <label class="block text-[10px] font-bold text-gray-400 mb-1">السنة</label>
-                        <input type="number" id="carYear" placeholder="2015" class="w-full text-sm font-bold text-gray-800 bg-transparent focus:outline-none">
-                    </div>
-                    <div class="col-span-2 bg-white p-3 rounded-xl border border-gray-100 shadow-sm focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition">
-                        <label class="block text-[10px] font-bold text-gray-400 mb-1">اسم القطعة</label>
-                        <input type="text" id="partName" placeholder="Phare avant droite" class="w-full text-sm font-bold text-gray-800 bg-transparent focus:outline-none">
-                    </div>
-                </div>
-
-                <!-- ملاحظات إضافية -->
-                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition">
-                    <label class="block text-[10px] font-bold text-gray-400 mb-1 flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                        ملاحظات إضافية (اختياري)
-                    </label>
-                    <textarea id="partNotes" rows="2" placeholder="نوع المحرك (Essence/Diesel)، اللون..." class="w-full text-sm text-gray-800 bg-transparent focus:outline-none resize-none"></textarea>
-                </div>
-
-                <!-- رفع الصورة -->
-                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                    <label class="block text-[10px] font-bold text-gray-400 mb-2">صورة القطعة (تزيد من سرعة الرد)</label>
-                    <label class="relative flex flex-col items-center justify-center w-full h-32 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-brand-300 transition overflow-hidden">
-                        
-                        <!-- Placeholder -->
-                        <div id="uploadPlaceholder" class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            <p class="text-xs text-gray-500">اضغط لإضافة صورة</p>
-                        </div>
-                        
-                        <!-- Preview -->
-                        <img id="imagePreview" src="" class="hidden w-full h-full object-cover">
-                        <input type="file" id="partImage" class="hidden" accept="image/*">
-                    </label>
-                </div>
-
-                <!-- رقم الهاتف -->
-                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition">
-                    <label class="block text-[10px] font-bold text-gray-400 mb-1">رقم الهاتف (للاتصال بك)</label>
-                    <input type="tel" id="phoneNumber" placeholder="0550 00 00 00" class="w-full text-lg font-mono font-bold text-gray-800 bg-transparent focus:outline-none text-left dir-ltr">
-                </div>
-
-                <!-- زر الإرسال -->
-                <button type="button" id="submitBtn" class="w-full bg-brand-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-brand-200 hover:bg-brand-700 transform active:scale-95 transition-all mt-4 flex items-center justify-center gap-2">
-                    <span>إرسال الطلب</span>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                </button>
-
-            </form>
-        </div>
-    </main>
-
-    <!-- ========================================== -->
-    <!-- 4. نافذة شروط التجار (MODAL) - تم الإضافة -->
-    <!-- ========================================== -->
-    <div id="merchantModal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-        <div class="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl relative">
-            <!-- زر الإغلاق -->
-            <button onclick="document.getElementById('merchantModal').classList.add('hidden')" class="absolute top-4 left-4 bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-    
-            <!-- محتوى النافذة -->
-            <div class="p-6 text-center">
-                <div class="w-16 h-16 bg-brand-100 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
-                    🏪
-                </div>
-                
-                <h3 class="text-xl font-bold text-gray-900 mb-2">هل تملك ورشة (Casse)؟</h3>
-                <p class="text-sm text-gray-500 leading-relaxed mb-6">
-                    انضم لأكبر شبكة قطع غيار في الجزائر. لضمان المصداقية، نطلب منك الآتي عند التسجيل:
-                </p>
-    
-                <!-- قائمة الشروط -->
-                <div class="bg-gray-50 rounded-xl p-4 text-right mb-6 border border-gray-100">
-                    <ul class="space-y-3">
-                        <li class="flex items-center gap-3 text-sm text-gray-700">
-                            <span class="flex-shrink-0 w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span>
-                            اسم الورشة ورقم الهاتف.
-                        </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-700">
-                            <span class="flex-shrink-0 w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs">✓</span>
-                            تحديد الولاية والبلدية.
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-bold text-gray-900 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-                            <span class="flex-shrink-0 w-5 h-5 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center text-xs">📸</span>
-                            صورة حقيقية لواجهة المحل (إجباري).
-                        </li>
-                    </ul>
-                </div>
-    
-                <div class="space-y-3">
-                    <!-- هذا الرابط يوجه لصفحة تسجيل التجار -->
-                    <a href="seller-login.html" class="block w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition shadow-lg no-underline">
-                        تسجيل الدخول / إنشاء حساب
-                    </a>
-                    <button onclick="document.getElementById('merchantModal').classList.add('hidden')" class="text-xs text-gray-400 font-bold hover:text-gray-600 w-full">
-                        أنا زبون ولست تاجراً
-                    </button>
-                </div>
-            </div>
-            
-            <!-- ملاحظة سفلية -->
-            <div class="bg-gray-50 p-3 text-[10px] text-gray-400 text-center border-t border-gray-100">
-                يتم مراجعة جميع الحسابات يدوياً لحماية المجتمع.
-            </div>
-        </div>
+    <!-- خلفية حية عصرية -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="blob absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-orange-600/20 rounded-full blur-[100px]"></div>
+        <div class="blob absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" style="animation-delay: 2s;"></div>
     </div>
 
-    <!-- ربط ملف المنطق الخلفي -->
-    <script type="module" src="./logic.js"></script>
+    <!-- المحتوى -->
+    <main class="w-full max-w-lg flex flex-col gap-6">
+        
+        <!-- 1. الشعار -->
+        <div class="text-center mb-4">
+            <h1 class="text-5xl font-black text-white tracking-tighter mb-2">
+                La Casse <span class="text-orange-500">Pro</span>
+            </h1>
+            <p class="text-gray-400 text-sm font-medium">سوق قطع الغيار الرقمي في جيبك</p>
+        </div>
+
+        <!-- 2. بطاقة "طلب جديد" -->
+        <!-- يذهب لصفحة customer.html لإرسال طلب -->
+        <a href="customer.html" class="group relative block w-full transform hover:scale-[1.01] active:scale-[0.98] transition-all duration-300">
+            <div class="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-orange-400 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
+            
+            <div class="relative bg-gray-900 border border-gray-700/50 rounded-3xl p-6 flex items-center justify-between shadow-2xl">
+                <div class="flex items-center gap-5">
+                    <div class="w-14 h-14 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-500 border border-orange-500/20 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    
+                    <div class="text-right">
+                        <h2 class="text-xl font-bold text-white">أبحث عن قطعة</h2>
+                        <p class="text-gray-400 text-xs mt-1 leading-relaxed">أرسل طلبك في ثوانٍ، وسنبحث لك عنها عند مئات التجار.</p>
+                    </div>
+                </div>
+                <div class="text-gray-600 group-hover:text-orange-500 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+            </div>
+        </a>
+
+        <!-- 3. بطاقة "تتبع الطلبات" (الكود السري) -->
+        <!-- تم التعديل: يذهب الآن لصفحة track.html -->
+        <a href="track.html" class="group relative block w-full transform hover:scale-[1.01] active:scale-[0.98] transition-all duration-300">
+            <div class="relative bg-gray-800/60 border border-gray-700/50 rounded-3xl p-6 flex items-center justify-between shadow-lg hover:bg-gray-800 hover:border-gray-600 transition">
+                
+                <div class="flex items-center gap-5">
+                    <div class="w-14 h-14 bg-gray-700/30 rounded-2xl flex items-center justify-center text-blue-400 border border-gray-600/30 group-hover:border-blue-400/30 transition-all duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </div>
+                    
+                    <div class="text-right">
+                        <h2 class="text-xl font-bold text-gray-200">عندي رمز سري</h2>
+                        <p class="text-gray-500 text-xs mt-1">شاهد صور وأسعار العروض التي وصلتك من التجار.</p>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- 4. قسم التجار -->
+        <div class="mt-8 pt-6 border-t border-gray-800/60 text-center">
+            <a href="seller-login.html" class="inline-flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 transition-all duration-300 w-full group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span class="font-bold text-sm">دخول أصحاب الورشات (Espace Pro)</span>
+            </a>
+        </div>
+
+    </main>
+
+    <!-- الحقوق -->
+    <footer class="absolute bottom-4 text-center w-full text-gray-600 text-[10px]">
+        &copy; 2024 La Casse Pro
+    </footer>
+
 </body>
 </html>
