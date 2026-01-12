@@ -74,14 +74,13 @@
                 <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                     <svg class="w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <!-- تم التحديث: البحث بالإيميل -->
                 <input type="text" id="globalAdminSearch" 
                        class="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent block w-full pr-12 pl-4 py-4 shadow-sm transition-all placeholder-gray-500" 
                        placeholder="بحث سريع (اسم المتجر، البريد الإلكتروني، القطعة...)">
             </div>
 
-            <!-- 2. بطاقات الإحصائيات (تم إزالة البطاقة الرابعة) -->
-            <div class="grid grid-cols-3 gap-3">
+            <!-- 2. بطاقات الإحصائيات (تم التعديل: توسيع الشبكة وإضافة بطاقة الرصيد) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <!-- قيد الانتظار -->
                 <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-lg flex flex-col items-center justify-center gap-1 hover:border-yellow-500/50 transition cursor-default">
                     <span class="text-2xl">🔔</span>
@@ -102,12 +101,23 @@
                     <h3 class="text-3xl font-bold text-white" id="statOrders">0</h3>
                     <p class="text-[10px] text-gray-400 font-bold">طلبات الزبائن</p>
                 </div>
+
+                <!-- [جديد] طلبات الرصيد -->
+                <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-lg flex flex-col items-center justify-center gap-1 hover:border-purple-500/50 transition cursor-default bg-purple-900/10">
+                    <span class="text-2xl">💰</span>
+                    <h3 class="text-3xl font-bold text-white" id="statBalance">--</h3>
+                    <p class="text-[10px] text-gray-400 font-bold">طلبات الشحن</p>
+                </div>
             </div>
 
-            <!-- 3. شريط التنقل (تم إزالة زر الاسترجاع) -->
-            <div class="flex bg-gray-800/80 backdrop-blur p-1.5 rounded-2xl shadow-inner overflow-x-auto hide-scrollbar border border-gray-700 sticky top-0 z-20">
+            <!-- 3. شريط التنقل (تم التعديل: إضافة زر طلبات الشحن) -->
+            <div class="flex bg-gray-800/80 backdrop-blur p-1.5 rounded-2xl shadow-inner overflow-x-auto hide-scrollbar border border-gray-700 sticky top-0 z-20 gap-1">
                 <button onclick="showSection('pending')" id="tab-pending" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold whitespace-nowrap transition-all bg-yellow-500 text-black shadow-lg transform scale-100">
                     قيد الانتظار
+                </button>
+                <!-- الزر الجديد -->
+                <button onclick="showSection('balance')" id="tab-balance" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-gray-400 whitespace-nowrap hover:bg-gray-700 transition-all">
+                    💰 طلبات الشحن
                 </button>
                 <button onclick="showSection('orders')" id="tab-orders" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-gray-400 whitespace-nowrap hover:bg-gray-700 transition-all">
                     الطلبات الجارية
@@ -131,7 +141,19 @@
                     </div>
                 </section>
 
-                <!-- ب) قسم الطلبات -->
+                <!-- [جديد] ب) قسم طلبات الشحن -->
+                <section id="sec-balance" class="hidden space-y-4 animate-fade-in">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
+                        <h3 class="text-sm font-bold text-gray-300">طلبات شحن الرصيد المعلقة</h3>
+                    </div>
+                    <!-- هذا العنصر هو الذي سيتم تعبئته بواسطة الجافاسكريبت -->
+                    <div id="adminBalanceRequestsList" class="space-y-3 pb-10">
+                        <p class="text-center text-gray-600 text-sm py-8 border border-dashed border-gray-700 rounded-xl">لا توجد طلبات شحن حالياً</p>
+                    </div>
+                </section>
+
+                <!-- ج) قسم الطلبات -->
                 <section id="sec-orders" class="hidden space-y-4 animate-fade-in">
                     <div class="flex items-center gap-2 mb-4">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
@@ -142,7 +164,7 @@
                     </div>
                 </section>
 
-                <!-- ج) قسم التجار -->
+                <!-- د) قسم التجار -->
                 <section id="sec-sellers" class="hidden space-y-4 animate-fade-in">
                     <div class="flex items-center gap-2 mb-4">
                         <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -174,9 +196,10 @@
             }
         });
 
-        // التنقل بين التبويبات (تم تعديله ليناسب 3 أقسام فقط)
+        // التنقل بين التبويبات (تم تعديله ليشمل قسم الرصيد balance)
         function showSection(sec) {
-            ['pending', 'orders', 'sellers'].forEach(id => {
+            // إضافة 'balance' للقائمة
+            ['pending', 'balance', 'orders', 'sellers'].forEach(id => {
                 const section = document.getElementById('sec-' + id);
                 if(section) section.classList.add('hidden');
                 
@@ -191,6 +214,7 @@
             if(activeTab) {
                 let activeColor = "bg-gray-700 text-white";
                 if(sec === 'pending') activeColor = "bg-yellow-500 text-black shadow-lg shadow-yellow-500/20";
+                if(sec === 'balance') activeColor = "bg-purple-600 text-white shadow-lg shadow-purple-600/20"; // لون جديد للرصيد
                 if(sec === 'orders') activeColor = "bg-green-600 text-white shadow-lg shadow-green-600/20";
                 if(sec === 'sellers') activeColor = "bg-blue-600 text-white shadow-lg shadow-blue-600/20";
                 
