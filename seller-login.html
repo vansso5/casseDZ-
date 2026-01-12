@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>دخول البائع | La Casse Pro</title>
+    <title>دخول البائع | استعادة كلمة السر</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style> body { font-family: 'Tajawal', sans-serif; background-color: #111827; } </style>
@@ -28,110 +28,130 @@
         <!-- 1. نموذج الدخول (Login Form) -->
         <div id="loginForm" class="space-y-4">
             <div>
-                <label class="text-xs text-gray-400">رقم الهاتف</label>
-                <input type="tel" id="loginPhone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left font-mono" dir="ltr">
+                <label class="text-xs text-gray-400">البريد الإلكتروني</label>
+                <input type="email" id="loginEmail" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left" dir="ltr">
             </div>
             <div>
                 <label class="text-xs text-gray-400">كلمة السر</label>
                 <input type="password" id="loginPassword" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
             </div>
             
-            <!-- زر نسيت كلمة السر -->
+            <!-- زر فتح نافذة استعادة كلمة السر -->
             <div class="flex justify-end">
-                <button onclick="document.getElementById('forgotModal').classList.remove('hidden')" class="text-xs text-orange-400 hover:text-orange-300 underline cursor-pointer">
+                <button type="button" onclick="openForgotModal()" class="text-xs text-orange-400 hover:text-orange-300 underline cursor-pointer transition">
                     نسيت كلمة السر؟
                 </button>
             </div>
 
-            <button type="button" id="sellerLoginBtn" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg mt-2">
+            <button type="button" id="sellerLoginBtn" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg mt-2 transition transform active:scale-95">
                 تسجيل الدخول
             </button>
         </div>
 
-        <!-- 2. نموذج التسجيل (Register Form) - تم التعديل هنا -->
+        <!-- 2. نموذج التسجيل (Register Form) -->
         <div id="registerForm" class="space-y-4 hidden">
-            
-            <!-- اسم الورشة -->
+            <!-- نفس حقول التسجيل السابقة -->
             <div>
-                <label class="text-xs text-gray-400">اسم الورشة (La Casse)</label>
-                <input type="text" id="regShopName" placeholder="مثال: ورشة الإخوة سطيف" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
+                <label class="text-xs text-gray-400">اسم الورشة او المحل</label>
+                <input type="text" id="regShopName" placeholder="" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
             </div>
-
-            <!-- الولاية والبلدية (جديد) -->
             <div class="flex gap-2">
                 <div class="flex-1">
                     <label class="text-xs text-gray-400">الولاية</label>
-                    <input type="text" id="regWilaya" placeholder="رقم أو اسم" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-center">
+                    <input type="text" id="regWilaya" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-center">
                 </div>
                 <div class="flex-1">
                     <label class="text-xs text-gray-400">البلدية</label>
-                    <input type="text" id="regBaladiya" placeholder="مقر النشاط" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-center">
+                    <input type="text" id="regBaladiya" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-center">
                 </div>
             </div>
-
-            <!-- رقم الهاتف -->
+            <div>
+                <label class="text-xs text-gray-400">البريد الإلكتروني <span class="text-orange-500">*</span></label>
+                <input type="email" id="regEmail" placeholder="email@gmail.com" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left" dir="ltr">
+            </div>
             <div>
                 <label class="text-xs text-gray-400">رقم الهاتف</label>
                 <input type="tel" id="regPhone" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left font-mono" dir="ltr">
             </div>
-
-            <!-- كلمة السر -->
             <div>
                 <label class="text-xs text-gray-400">كلمة سر جديدة</label>
                 <input type="password" id="regPassword" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
             </div>
-
-            <!-- رفع صورة المحل (جديد) -->
             <div class="bg-gray-900/50 p-3 rounded-lg border border-dashed border-gray-600">
-                <label class="text-xs font-bold text-orange-400 mb-2 block">صورة واجهة المحل (إجباري للتفعيل)</label>
-                <input type="file" id="regShopImage" accept="image/*" class="block w-full text-xs text-gray-400
-                  file:mr-0 file:ml-2 file:py-2 file:px-4
-                  file:rounded-full file:border-0
-                  file:text-xs file:font-semibold
-                  file:bg-gray-700 file:text-white
-                  hover:file:bg-gray-600 cursor-pointer
-                "/>
-                <p class="text-[10px] text-gray-500 mt-2 text-center">يجب أن تكون اللافتة أو باب الورشة واضحاً</p>
+                <label class="text-xs font-bold text-orange-400 mb-2 block">صورة واجهة المحل ( اجباري )</label>
+                <input type="file" id="regShopImage" accept="image/*" class="block w-full text-xs text-gray-400 file:mr-0 file:ml-2 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600 cursor-pointer"/>
             </div>
-
             <button type="button" id="btnRegister" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl border border-gray-500 mt-2">
                 إنشاء حساب (+1500 دج)
             </button>
         </div>
-
     </div>
 
-    <!-- نافذة استرجاع كلمة السر (Modal) -->
-    <div id="forgotModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-gray-800 w-full max-w-xs p-6 rounded-2xl border border-gray-600">
-            <h3 class="text-lg font-bold text-white mb-2">استرجاع الحساب</h3>
-            <p class="text-xs text-gray-400 mb-4">أدخل رقم هاتفك وسيصل طلب للإدارة للاتصال بك.</p>
+    <!-- ============================================== -->
+    <!-- منطقة استعادة كلمة السر (Forgot Password Modal) -->
+    <!-- ============================================== -->
+    <div id="forgotModal" class="fixed inset-0 bg-black/90 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-gray-800 w-full max-w-sm p-8 rounded-2xl border border-gray-600 shadow-2xl relative animate-bounce-in">
             
-            <input type="tel" id="forgotPhone" placeholder="055..." class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white mb-4 focus:border-orange-500 text-left" dir="ltr">
-            
-            <div class="flex gap-2">
-                <button onclick="document.getElementById('forgotModal').classList.add('hidden')" class="flex-1 bg-gray-700 py-2 rounded-lg text-sm text-gray-300">إلغاء</button>
-                <button id="btnSendReset" class="flex-1 bg-orange-600 py-2 rounded-lg text-sm font-bold text-white">إرسال الطلب</button>
+            <!-- زر الإغلاق (X) -->
+            <button onclick="closeForgotModal()" class="absolute top-4 left-4 text-gray-400 hover:text-white transition">✕</button>
+
+            <!-- المحتوى -->
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                    🔒
+                </div>
+                <h3 class="text-xl font-bold text-white">استرجاع كلمة السر</h3>
+                <p class="text-xs text-gray-400 mt-2">أدخل بريدك الإلكتروني المسجل لدينا، وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.</p>
             </div>
+            
+            <!-- حقل إدخال الإيميل (مهم جداً: id="forgotEmail") -->
+            <div class="mb-6">
+                <input type="email" id="forgotEmail" placeholder="example@gmail.com" class="w-full bg-gray-900 border border-gray-500 rounded-xl p-4 text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-left transition" dir="ltr">
+            </div>
+            
+            <!-- أزرار التحكم -->
+            <div class="flex flex-col gap-3">
+                <!-- زر الإرسال (مهم جداً: id="btnSendReset") -->
+                <button id="btnSendReset" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
+                    إرسال رابط الاسترجاع
+                </button>
+                
+                <button onclick="closeForgotModal()" class="w-full bg-transparent border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500 font-bold py-3 rounded-xl transition">
+                    إلغاء
+                </button>
+            </div>
+
         </div>
     </div>
 
-    <!-- سكربت التبديل -->
     <script>
+        // دوال التحكم في ظهور الواجهات (UI Logic)
         function showLogin() {
             document.getElementById('loginForm').classList.remove('hidden');
             document.getElementById('registerForm').classList.add('hidden');
             document.getElementById('tab-login').className = "flex-1 pb-2 text-orange-500 border-b-2 border-orange-500 font-bold transition";
             document.getElementById('tab-register').className = "flex-1 pb-2 text-gray-500 font-bold transition";
         }
+
         function showRegister() {
             document.getElementById('loginForm').classList.add('hidden');
             document.getElementById('registerForm').classList.remove('hidden');
             document.getElementById('tab-login').className = "flex-1 pb-2 text-gray-500 font-bold transition";
             document.getElementById('tab-register').className = "flex-1 pb-2 text-orange-500 border-b-2 border-orange-500 font-bold transition";
         }
+
+        // دوال المودال (Popup)
+        function openForgotModal() {
+            document.getElementById('forgotModal').classList.remove('hidden');
+        }
+
+        function closeForgotModal() {
+            document.getElementById('forgotModal').classList.add('hidden');
+        }
     </script>
 
+    <!-- ربط ملف الـ JavaScript الذي يحتوي على منطق Firebase -->
     <script type="module" src="./logic.js"></script>
 
 </body>
