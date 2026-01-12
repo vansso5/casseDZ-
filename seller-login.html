@@ -6,12 +6,35 @@
     <title>دخول البائع | استعادة كلمة السر</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Tajawal', sans-serif; background-color: #111827; } </style>
+    <style> 
+        body { font-family: 'Tajawal', sans-serif; background-color: #111827; } 
+        
+        /* إضافة ستايل الزجاج للهيدر (تم نقله من الكود الأول) */
+        .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+    </style>
 </head>
 <body class="text-white min-h-screen flex flex-col justify-center items-center p-4">
 
+    <!-- 1. الهيدر (رأس الصفحة) - تمت إضافته هنا -->
+    <header class="glass fixed top-0 w-full z-50">
+        <div class="max-w-lg mx-auto px-4 py-3 flex justify-between items-center">
+            <!-- زر العودة للرئيسية -->
+            <a href="index.html" class="flex items-center gap-2 group">
+                <div class="bg-gray-800 p-2 rounded-xl group-hover:bg-gray-700 transition border border-gray-700">
+                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m7 7l-7-7 7-7"></path></svg>
+                </div>
+            </a>
+
+            <!-- العنوان (تم تغيير النص ليناسب صفحة البائع) -->
+            <h1 class="text-lg font-bold tracking-tight">تسجيل <span class="text-orange-500">الدخول</span></h1>
+
+            <!-- زر فارغ للموازنة الجمالية -->
+            <div class="w-10"></div>
+        </div>
+    </header>
+
     <!-- الشعار -->
-    <div class="mb-8 text-center mt-4">
+    <div class="mb-8 text-center mt-16"> <!-- تمت زيادة الـ margin-top لكي لا يغطيه الهيدر -->
         <h1 class="text-3xl font-bold text-white">La Casse <span class="text-orange-500">Pro</span></h1>
         <p class="text-gray-400 text-sm mt-1">بوابة أصحاب الورشات</p>
     </div>
