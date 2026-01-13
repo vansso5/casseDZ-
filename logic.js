@@ -14,11 +14,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app); // تفعيل المصادقة
+const auth = getAuth(app); 
 const db = getFirestore(app);
 
+// متغيرات عالمية
+let currentReviewSellerId = null;
+let currentReviewOrderId = null;
+
 // ============================================================
-// دالة مساعدة لتجنب الأخطاء عند إخفاء/إظهار العناصر
+// Helpers & Utilities
 // ============================================================
 const safeToggle = (id, action) => {
     const el = document.getElementById(id);
@@ -28,16 +32,11 @@ const safeToggle = (id, action) => {
     }
 };
 
-// ============================================================
-// UI Helpers & Global Functions
-// ============================================================
-
-// --- 1. Lightbox (عارض الصور) ---
 function createLightbox() {
     if (document.getElementById('imgLightbox')) return;
     const box = document.createElement('div');
     box.id = 'imgLightbox';
-    box.className = 'fixed inset-0 z-[100] bg-black/95 hidden flex justify-center items-center cursor-zoom-out';
+    box.className = 'fixed inset-0 z-[150] bg-black/95 hidden flex justify-center items-center cursor-zoom-out';
     box.onclick = (e) => { if(e.target !== document.getElementById('lightboxImg')) box.classList.add('hidden'); };
     box.innerHTML = `<img id="lightboxImg" src="" class="max-w-[95%] max-h-[95%] object-contain rounded-lg shadow-2xl transition-transform duration-300 scale-100">`;
     document.body.appendChild(box);
@@ -51,7 +50,6 @@ window.openLightbox = (src) => {
     box.classList.remove('hidden');
 };
 
-// --- 2. دالة ضغط الصور (الحل لمشكلة الحجم الكبير) ---
 const compressImage = (file) => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -63,7 +61,6 @@ const compressImage = (file) => {
                 const canvas = document.createElement('canvas');
                 const MAX_WIDTH = 800;
                 const scaleSize = MAX_WIDTH / img.width;
-                
                 if (img.width > MAX_WIDTH) {
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
@@ -71,7 +68,6 @@ const compressImage = (file) => {
                     canvas.width = img.width;
                     canvas.height = img.height;
                 }
-                
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 resolve(canvas.toDataURL('image/jpeg', 0.6));
@@ -80,121 +76,6 @@ const compressImage = (file) => {
     });
 };
 
-// --- 3. مودال التقييم الفوري ---
-function createPostCallRatingModal(sellerId, orderId) {
-    const old = document.getElementById('postCallRatingModal');
-    if(old) old.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'postCallRatingModal';
-    modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[90] font-sans p-4';
-    
-    modal.innerHTML = `
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-slide-up relative">
-            <div class="p-6 text-center">
-                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span class="text-2xl">📞</span>
-                </div>
-                <h3 class="text-lg font-bold text-gray-900 mb-1">تم توجيه الاتصال</h3>
-                <p class="text-xs text-gray-500 mb-6">يرجى تقييم البائع لإتمام العملية</p>
-                
-                <div class="flex justify-center gap-2 mb-6" id="starContainer">
-                    ${[1,2,3,4,5].map(i => `
-                        <button onclick="selectStar(${i})" class="text-3xl text-gray-300 focus:outline-none transition hover:scale-110 star-btn" data-val="${i}">★</button>
-                    `).join('')}
-                </div>
-                
-                <input type="hidden" id="selectedRating" value="0">
-                
-                <button onclick="submitPostCallRating('${sellerId}', '${orderId}')" id="btnConfirmRate" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    تأكيد التقييم
-                </button>
-                <button onclick="document.getElementById('postCallRatingModal').remove()" class="mt-3 text-xs text-gray-400 underline">تخطي</button>
-            </div>
-        </div>`;
-    document.body.appendChild(modal);
-
-    window.selectStar = (val) => {
-        document.getElementById('selectedRating').value = val;
-        document.querySelectorAll('.star-btn').forEach(btn => {
-            const btnVal = parseInt(btn.getAttribute('data-val'));
-            if(btnVal <= val) {
-                btn.classList.remove('text-gray-300');
-                btn.classList.add('text-yellow-400');
-            } else {
-                btn.classList.add('text-gray-300');
-                btn.classList.remove('text-yellow-400');
-            }
-        });
-    };
-
-    window.submitPostCallRating = async (sId, oId) => {
-        const stars = document.getElementById('selectedRating').value;
-        if(stars == 0) return alert("الرجاء اختيار عدد النجوم");
-        
-        const btn = document.getElementById('btnConfirmRate');
-        btn.innerText = "جاري الإرسال...";
-        btn.disabled = true;
-
-        try {
-            await addDoc(collection(db, "ratings"), {
-                sellerId: sId,
-                orderId: oId,
-                stars: parseInt(stars),
-                createdAt: serverTimestamp()
-            });
-            alert("شكراً لك! تم التقييم بنجاح.");
-            document.getElementById('postCallRatingModal').remove();
-            const trackBtn = document.getElementById('trackBtn');
-            if(trackBtn) trackBtn.click();
-        } catch(e) {
-            console.error(e);
-            alert("حدث خطأ في التقييم");
-            btn.disabled = false;
-        }
-    };
-}
-
-// --- 4. مودال تفاصيل العرض للزبون ---
-function createCustomerOfferModal() {
-    if (document.getElementById('custOfferModal')) return;
-    const modal = document.createElement('div');
-    modal.id = 'custOfferModal';
-    modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-[70] p-4 font-sans';
-    modal.innerHTML = `
-        <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden relative shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up">
-            <button onclick="document.getElementById('custOfferModal').classList.add('hidden')" class="absolute top-4 left-4 bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200 z-10 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <div class="p-6 pt-12">
-                <h3 class="text-2xl font-bold mb-4 text-center text-gray-900" id="custModalTitle">تفاصيل العرض</h3>
-                <div id="custModalSellerRating" class="text-center mb-4"></div>
-
-                <div id="custModalImages" class="flex overflow-x-auto gap-3 mb-6 snap-x py-2 hide-scrollbar min-h-[120px] bg-gray-50 rounded-xl items-center p-2"></div>
-                <div class="space-y-3">
-                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex justify-between items-center">
-                        <div>
-                            <p class="text-xs text-gray-400 mb-1">حالة القطعة</p>
-                            <p class="font-bold text-gray-800 flex items-center gap-2" id="custModalCondition">--</p>
-                        </div>
-                        <div class="text-left">
-                             <p class="text-xs text-gray-400 mb-1">السعر المقترح</p>
-                             <p class="text-xl font-bold text-brand-600" id="custModalPrice">0 DA</p>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        <p class="text-xs text-gray-400 mb-1">ملاحظات البائع</p>
-                        <p class="text-gray-800 text-sm whitespace-pre-wrap leading-relaxed" id="custModalNotes">--</p>
-                    </div>
-                </div>
-                <div id="custModalActionArea" class="mt-6"></div>
-            </div>
-        </div>`;
-    document.body.appendChild(modal);
-}
-createCustomerOfferModal();
-
-// --- 5. دالة مساعدة لجلب وعرض التقييم ---
 async function updateRatingUI(sellerId, elementId) {
     try {
         const q = query(collection(db, "ratings"), where("sellerId", "==", sellerId));
@@ -220,7 +101,6 @@ async function updateRatingUI(sellerId, elementId) {
     } catch(e) { console.error("Rating Error", e); }
 }
 
-// --- 6. دالة معاينة الصور للبائع ---
 window.previewThumb = (input) => {
     const num = input.id.slice(-1); 
     const thumbId = 'thumb' + num;
@@ -238,8 +118,54 @@ window.previewThumb = (input) => {
     }
 };
 
+// --- مودال تفاصيل العرض للزبون ---
+function createCustomerOfferModal() {
+    if (document.getElementById('custOfferModal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'custOfferModal';
+    modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-[70] p-4 font-sans transition-opacity duration-300';
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.add('hidden'); };
+
+    modal.innerHTML = `
+        <div class="bg-gray-900 w-full max-w-sm rounded-[2rem] overflow-hidden relative shadow-2xl border border-gray-700 max-h-[85vh] overflow-y-auto animate-slide-up" onclick="event.stopPropagation()">
+            <button onclick="document.getElementById('custOfferModal').classList.add('hidden')" class="absolute top-3 left-3 bg-gray-800 p-2 rounded-full text-gray-400 hover:text-white transition z-10 border border-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="p-5 pt-8">
+                <div class="text-center mb-4">
+                    <span class="text-orange-500 text-[10px] font-bold uppercase tracking-widest">تفاصيل العرض</span>
+                    <h3 class="text-xl font-bold text-white mt-1 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        <span id="custModalWilaya">---</span>
+                    </h3>
+                    <div id="custModalSellerRating" class="mt-1 flex justify-center"></div>
+                </div>
+                <div id="custModalImages" class="flex overflow-x-auto gap-2 mb-4 snap-x py-2 hide-scrollbar min-h-[120px] bg-gray-800/50 rounded-2xl items-center px-2 border border-gray-700/50"></div>
+                <div class="space-y-2 mb-4">
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex justify-between items-center">
+                        <div>
+                            <p class="text-[10px] text-gray-400 mb-1 font-bold">حالة القطعة</p>
+                            <span id="custModalCondition" class="text-white font-bold text-xs bg-gray-700 px-2 py-1 rounded">--</span>
+                        </div>
+                        <div class="text-left">
+                             <p class="text-[10px] text-gray-400 mb-1 font-bold">السعر المقترح</p>
+                             <p class="text-xl font-black text-orange-500 tracking-tight" id="custModalPrice">0 DA</p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                        <p class="text-[10px] text-gray-400 mb-1 font-bold">ملاحظات التاجر</p>
+                        <p class="text-gray-300 text-xs whitespace-pre-wrap leading-relaxed bg-gray-900/50 p-2 rounded-lg border border-gray-700/50" id="custModalNotes">--</p>
+                    </div>
+                </div>
+                <div id="custModalActionArea" class="mt-4"></div>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+}
+createCustomerOfferModal();
+
 // ============================================================
-// 1. منطق الزبون (CLIENT SIDE)
+// 1. منطق الزبون (Customer Side)
 // ============================================================
 
 let uploadedImageBase64 = null;
@@ -258,10 +184,7 @@ if (fileInput) {
                     imagePreview.classList.remove('hidden'); 
                     uploadPlaceholder.classList.add('hidden'); 
                 }
-            } catch(err) {
-                console.error(err);
-                alert("حدث خطأ أثناء معالجة الصورة");
-            }
+            } catch(err) { console.error(err); alert("حدث خطأ أثناء معالجة الصورة"); }
         }
     });
 }
@@ -302,6 +225,7 @@ if (submitBtn) {
         const partName = document.getElementById('partName').value;
         const partNotes = document.getElementById('partNotes') ? document.getElementById('partNotes').value : "";
         const phoneNumber = document.getElementById('phoneNumber').value;
+        const wilaya = document.getElementById('wilaya') ? document.getElementById('wilaya').value : "";
 
         if(!carMake || !partName || !phoneNumber) { alert("املأ البيانات"); return; }
 
@@ -313,6 +237,7 @@ if (submitBtn) {
         try {
             await addDoc(collection(db, "orders"), {
                 carMake, carModel, carYear, partName, notes: partNotes, phoneNumber,
+                wilaya: wilaya, 
                 imageUrl: uploadedImageBase64 || null, secretCode: generatedCode,
                 status: "active", createdAt: serverTimestamp()
             });
@@ -324,38 +249,25 @@ if (submitBtn) {
             if(successDiv) {
             successDiv.innerHTML = `
             <div class="flex items-center justify-center min-h-[50vh] p-4">
-              <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-2xl text-center relative overflow-hidden animate-slide-up">
-                <div class="absolute top-0 left-0 w-full h-2 bg-green-500"></div>
-                
-                <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-100">
-                  <span class="text-3xl">✅</span>
+              <div class="bg-gray-800 w-full max-w-md p-6 rounded-[2rem] shadow-2xl text-center relative overflow-hidden animate-slide-up border border-gray-700">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+                <div class="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/20 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                  <span class="text-4xl">✅</span>
                 </div>
-                
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">تم إرسال الطلب!</h3>
-                
-                <div class="bg-yellow-50 border border-yellow-100 rounded-2xl p-5 my-5 shadow-inner">
-                  <p class="text-sm text-yellow-700 font-bold mb-2">⚠️ هام جداً: احفظ هذا الرمز السري</p>
-                  <div class="text-4xl font-black text-gray-800 tracking-widest font-mono my-3 select-all bg-white py-2 rounded-lg border border-yellow-200 border-dashed">
+                <h3 class="text-2xl font-bold text-white mb-2">تم الإرسال بنجاح!</h3>
+                <div class="bg-gray-900/50 border border-gray-700 rounded-2xl p-5 my-6">
+                  <p class="text-xs text-orange-400 font-bold mb-2 uppercase tracking-widest">رمز التتبع الخاص بك</p>
+                  <div class="text-5xl font-black text-white tracking-[0.2em] font-mono my-3 select-all drop-shadow-md">
                     ${generatedCode}
                   </div>
-                  <p class="text-xs text-gray-500 leading-relaxed">
-                    ستحتاج هذا الرمز مع رقم هاتفك لـ
-                    <span class="font-bold text-gray-700">تتبع حالة الطلب</span>
-                    ومشاهدة عروض البائعين.
-                  </p>
+                  <p class="text-[10px] text-gray-500">استخدم هذا الرمز لمتابعة العروض</p>
                 </div>
-                
-                <div class="text-xs text-gray-400 mb-6 px-4">
-                  طريقة الاستخدام: عد للصفحة الرئيسية في أي وقت، اضغط على زر "تتبع طلب"، وأدخل رقم هاتفك مع هذا الرمز.
-                </div>
-                
-                <button onclick="window.resetCustomerForm()" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-gray-800 transition transform active:scale-95 cursor-pointer">
+                <button onclick="window.resetCustomerForm()" class="w-full bg-white text-gray-900 font-black py-4 rounded-xl shadow-lg hover:bg-gray-200 transition transform active:scale-95 cursor-pointer text-sm">
                   طلب قطعة أخرى
                 </button>
               </div>
             </div>`;
             }
-
         } catch (e) {
             alert("خطأ: " + e.message);
             submitBtn.disabled = false;
@@ -364,7 +276,7 @@ if (submitBtn) {
     });
 }
 
-// ج) تتبع واتصال
+// --- تتبع الطلب ---
 const trackBtn = document.getElementById('trackBtn');
 if (trackBtn) {
     trackBtn.addEventListener('click', async () => {
@@ -373,180 +285,231 @@ if (trackBtn) {
         
         if(!phone || !code) { alert("أدخل البيانات"); return; }
         
-        trackBtn.innerText = "بحث...";
+        trackBtn.innerText = "جاري البحث...";
+        
         try {
             const q = query(collection(db, "orders"), where("phoneNumber", "==", phone), where("secretCode", "==", code));
+            
             onSnapshot(q, (snap) => {
                 if(snap.empty) { 
                     alert("لا يوجد طلب بهذا الرقم والكود.");
-                    trackBtn.innerText = "تتبع";
+                    trackBtn.innerText = "إظهار العروض";
                     return; 
                 }
                 
                 const orderDoc = snap.docs[0];
                 const orderId = orderDoc.id;
+                const orderData = orderDoc.data();
                 
                 safeToggle('loginSection', 'hide');
                 safeToggle('formScreen', 'hide');
                 safeToggle('successScreen', 'hide');
                 safeToggle('dashboardSection', 'show');
                 
-                trackBtn.innerText = "تتبع";
+                trackBtn.innerText = "إظهار العروض";
+                
                 const titleEl = document.getElementById('orderTitle');
-                if(titleEl) titleEl.innerText = orderDoc.data().partName;
+                if(titleEl) titleEl.innerText = `${orderData.partName} (${orderData.carMake})`;
 
                 onSnapshot(query(collection(db, "offers"), where("orderId", "==", orderId)), (offerSnap) => {
                     const list = document.getElementById('offersList');
                     if(!list) return;
                     list.innerHTML = "";
                     
-                    onSnapshot(query(collection(db, "sales"), where("orderId", "==", orderId)), (salesSnap) => {
-                        salesSnap.forEach(sDoc => {
-                            const sale = sDoc.data();
-                            list.innerHTML += `
-                            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 mb-4 opacity-75">
-                                <div class="flex justify-between items-center">
-                                    <h4 class="font-bold text-gray-500">تم الشراء من بائع</h4>
-                                    <span class="text-green-600 font-bold text-sm">${sale.price} DA</span>
-                                </div>
-                                <p class="text-[10px] text-gray-400 mt-1">تمت العملية بنجاح</p>
-                            </div>`;
-                        });
+                    if(offerSnap.empty) {
+                        list.innerHTML = `
+                        <div class="bg-gray-800/50 rounded-2xl p-10 text-center border border-dashed border-gray-700">
+                            <p class="text-lg font-bold mb-2 text-gray-300">
+                                ${orderData.status === 'sold' ? 'تم إغلاق الطلب ✅' : 'جاري البحث...'}
+                            </p>
+                            <p class="text-sm text-gray-500 animate-pulse">
+                                ${orderData.status === 'sold' ? 'تمت العملية بنجاح، شكراً لثقتكم.' : 'تم إرسال طلبك للورشات، انتظر العروض قريباً.'}
+                            </p>
+                        </div>`;
+                        return;
+                    }
+                    
+                    const wilayas = ["Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", "Béchar", "Blida", "Bouira", "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Alger", "Djelfa", "Jijel", "Sétif", "Saïda", "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma", "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", "Ouargla", "Oran", "El Bayadh", "Illizi", "Bordj Bou Arreridj", "Boumerdès", "El Tarf", "Tindouf", "Tissemsilt", "El Oued", "Khenchela", "Souk Ahras", "Tipaza", "Mila", "Aïn Defla", "Naâma", "Aïn Témouchent", "Ghardaïa", "Relizane", "Timimoun", "Bordj Badji Mokhtar", "Ouled Djellal", "Béni Abbès", "In Salah", "In Guezzam", "Touggourt", "Djanet", "El M'Ghair", "El Meniaa"];
 
-                        if(offerSnap.empty && salesSnap.empty) {
-                            list.innerHTML = "<p class='text-center text-gray-400 py-10 border border-dashed rounded-xl bg-gray-50'>جاري البحث عن بائعين...</p>";
-                        }
+                    offerSnap.forEach(async (d) => {
+                        const o = d.data();
+                        const offerId = d.id;
                         
-                        offerSnap.forEach(d => {
-                            const o = d.data();
-                            const offerId = d.id;
-                            const offerDataStr = encodeURIComponent(JSON.stringify({...o, id: offerId}));
-                            const ratingBoxId = `rating-${o.sellerId}-${offerId}`;
-                            
-                                                        // تصميم الزر الجديد (أصغر قليلاً وأكثر نعومة)
-                            const actionButtonHtml = `
-                            <button onclick="openCustomerOfferDetails('${offerDataStr}')" 
-                            class="group w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm">
-                                <span>عرض التفاصيل والصور</span>
-                                <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                            </button>`;
-                            
-                            // تصميم البطاقة الجديد
-                            list.innerHTML += `
-                            <div class="bg-white p-4 rounded-2xl border border-gray-100 mb-4 shadow-sm hover:shadow-md transition duration-300 relative overflow-hidden">
-                                
-                                <!-- الجزء العلوي: المعلومات والسعر -->
-                                <div class="flex justify-between items-start mb-3">
-                                    
-                                    <!-- اليمين: معلومات البائع -->
-                                    <div class="flex flex-col gap-1">
-                                        <div class="flex items-center gap-1">
-                                            <h4 class="font-bold text-gray-900 text-base">${o.sellerName}</h4>
-                                            <svg class="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                                        </div>
-                                        
-                                        <!-- التقييم -->
-                                        <div id="${ratingBoxId}" class="origin-right scale-95 -mr-1"></div>
+                        let sellerWilayaName = "غير محدد";
+                        if(o.sellerWilaya) {
+                            sellerWilayaName = !isNaN(o.sellerWilaya) ? wilayas[parseInt(o.sellerWilaya)-1] : o.sellerWilaya;
+                        } else {
+                            const sellerSnap = await getDoc(doc(db, "sellers", o.sellerId));
+                            if(sellerSnap.exists()) {
+                                const sData = sellerSnap.data();
+                                sellerWilayaName = !isNaN(sData.wilaya) ? wilayas[parseInt(sData.wilaya)-1] : sData.wilaya;
+                            }
+                        }
 
-                                        <!-- حالة القطعة (Badge) -->
-                                        <div class="mt-1">
-                                            <span class="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded text-[10px] text-gray-500">
-                                                <span>حالة:</span>
-                                                <span class="font-bold text-gray-800">${o.condition || 'غير محدد'}</span>
-                                            </span>
-                                        </div>
-                                    </div>
+                        const offerData = { ...o, id: offerId, displayWilaya: sellerWilayaName, partName: orderData.partName };
+                        const offerDataStr = encodeURIComponent(JSON.stringify(offerData));
 
-                                    <!-- اليسار: السعر -->
-                                    <div class="text-left flex flex-col items-end">
-                                        <span class="block text-2xl font-black text-orange-600 tracking-tight leading-none">${o.price}</span>
-                                        <span class="text-[10px] text-gray-400 font-bold uppercase mt-1">DZD / دينار</span>
-                                    </div>
+                        list.innerHTML += `
+                        <div class="bg-gray-800 p-5 rounded-[2rem] border border-gray-700 mb-4 shadow-lg hover:border-gray-600 transition-all cursor-pointer group" onclick="openCustomerOfferDetails('${offerDataStr}')">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-400">السعر</span>
+                                    <span class="text-2xl font-black text-white">${o.price} <span class="text-sm text-orange-500">DA</span></span>
                                 </div>
-
-                                <!-- فاصل -->
-                                <div class="h-px w-full bg-gray-50 mb-3"></div>
-
-                                <!-- الزر في الأسفل -->
-                                ${actionButtonHtml}
-                            </div>`;
-                            
-                            updateRatingUI(o.sellerId, ratingBoxId);
-                        });
+                                <span class="bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full text-[10px] border border-gray-600">
+                                    ${o.condition || 'مستعمل'}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400">موقع القطعة</p>
+                                    <p class="text-sm font-bold text-white">${sellerWilayaName}</p>
+                                </div>
+                            </div>
+                            <button class="w-full bg-gray-700 group-hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                                <span>عرض الصور والتفاصيل</span>
+                                <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>`;
                     });
                 });
             });
-        } catch(e) { console.error(e); trackBtn.innerText = "تتبع"; }
+        } catch(e) { console.error(e); trackBtn.innerText = "إظهار العروض"; }
     });
+}
 
-    window.openCustomerOfferDetails = (offerDataEncoded) => {
-        const offer = JSON.parse(decodeURIComponent(offerDataEncoded));
-        const modal = document.getElementById('custOfferModal');
-        const actionArea = document.getElementById('custModalActionArea');
-        const imgContainer = document.getElementById('custModalImages');
-        const ratingContainer = document.getElementById('custModalSellerRating');
-        
-        document.getElementById('custModalCondition').innerText = offer.condition || "غير محدد";
-        document.getElementById('custModalNotes').innerText = offer.notes || "لا توجد ملاحظات";
-        document.getElementById('custModalPrice').innerText = offer.price + " DA";
+// --- فتح مودال التفاصيل ---
+window.openCustomerOfferDetails = (offerDataEncoded) => {
+    const offer = JSON.parse(decodeURIComponent(offerDataEncoded));
+    const modal = document.getElementById('custOfferModal');
+    const actionArea = document.getElementById('custModalActionArea');
+    const imgContainer = document.getElementById('custModalImages');
+    const ratingContainer = document.getElementById('custModalSellerRating');
+    
+    document.getElementById('custModalWilaya').innerText = offer.displayWilaya || "غير محدد";
+    document.getElementById('custModalCondition').innerText = offer.condition || "غير محدد";
+    document.getElementById('custModalNotes').innerText = offer.notes || "لا توجد ملاحظات";
+    document.getElementById('custModalPrice').innerText = offer.price + " DA";
 
-        const modalRatingId = `modal-rating-${offer.sellerId}`;
-        ratingContainer.innerHTML = `<div id="${modalRatingId}" class="flex justify-center"></div>`;
-        updateRatingUI(offer.sellerId, modalRatingId);
+    const modalRatingId = `modal-rating-view-${offer.sellerId}`;
+    ratingContainer.innerHTML = `<div id="${modalRatingId}"></div>`;
+    updateRatingUI(offer.sellerId, modalRatingId);
 
-        imgContainer.innerHTML = "";
-        if (offer.images && offer.images.length > 0) {
-            offer.images.forEach(img => {
-                imgContainer.innerHTML += `<img src="${img}" class="h-32 w-auto rounded-xl border border-gray-200 shadow-sm snap-center object-cover cursor-zoom-in hover:brightness-90 transition" onclick="openLightbox(this.src)">`;
-            });
-        } else {
-            imgContainer.innerHTML = `<p class="text-gray-400 text-xs w-full text-center">لا توجد صور</p>`;
-        }
+    imgContainer.innerHTML = "";
+    if (offer.images && offer.images.length > 0) {
+        offer.images.forEach(img => {
+            imgContainer.innerHTML += `<img src="${img}" class="h-32 w-auto rounded-xl border border-gray-600 shadow-md snap-center object-cover cursor-zoom-in hover:brightness-110 transition" onclick="openLightbox(this.src)">`;
+        });
+    } else {
+        imgContainer.innerHTML = `<div class="w-full text-center py-4 text-gray-500 text-xs border border-dashed border-gray-700 rounded-xl">لا توجد صور مرفقة</div>`;
+    }
 
-        const cleanPhone = offer.sellerPhone ? offer.sellerPhone.toString().replace(/\D/g, '') : "";
-        actionArea.innerHTML = `
-            <button onclick="handleCustomerCallFinal('${offer.sellerId}', '${offer.orderId}', '${cleanPhone}', '${offer.partName}', '${offer.price}', '${offer.id}')" 
-            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-600/30 flex items-center justify-center gap-2 animate-pulse">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-            إظهار الرقم والاتصال
-            </button>
-            <p class="text-center text-[10px] text-gray-400 mt-3 bg-gray-50 p-2 rounded">بالضغط على الاتصال سيتم حجز القطعة لك</p>`;
-        
-        modal.classList.remove('hidden');
-    };
+    actionArea.innerHTML = `
+        <button onclick="handleFinalSelection('${offer.sellerId}', '${offer.orderId}', '${offer.sellerPhone}', '${offer.sellerName}', '${offer.displayWilaya}', '${offer.partName || 'قطعة غيار'}', '${offer.price}')" 
+        class="w-full bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-black py-4 rounded-xl shadow-lg shadow-orange-900/50 flex items-center justify-center gap-3 transform active:scale-[0.98] transition-all">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+            <span class="text-lg">كشف الرقم والاتصال</span>
+        </button>
+        <p class="text-center text-[10px] text-gray-500 mt-3">بالضغط هنا سيتم تثبيت الطلب وحجزه لك</p>
+    `;
+    
+    modal.classList.remove('hidden');
+};
 
-    window.handleCustomerCallFinal = async (sellerId, orderId, phone, partName, price, offerId) => {
+// --- الدالة النهائية: الخصم + الكشف + تجهيز التقييم ---
+window.handleFinalSelection = async (sellerId, orderId, phone, sellerName, sellerWilaya, partName, price) => {
+    
+    if(!confirm("هل أنت متأكد من اختيار هذا العرض؟\nسيتم نقلك للاتصال فوراً.")) return;
+    
+    const btn = document.querySelector('#custModalActionArea button');
+    if(btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="animate-pulse">جاري تحويل الاتصال...</span>`;
+    }
+
+    try {
+        const batch = writeBatch(db);
+
+        // 1. خصم الرصيد
+        const sellerRef = doc(db, "sellers", sellerId);
+        batch.update(sellerRef, { balance: increment(-50) });
+
+        // 2. تحديث الحالة إلى مباع
+        const orderRef = doc(db, "orders", orderId);
+        batch.update(orderRef, { status: 'sold', soldAt: serverTimestamp() });
+
+        // 3. تسجيل بيع
+        const saleRef = doc(collection(db, "sales"));
+        batch.set(saleRef, { sellerId, orderId, partName, price: price, soldAt: serverTimestamp() });
+
+        await batch.commit();
+
         document.getElementById('custOfferModal').classList.add('hidden');
-        await handleCustomerCall(sellerId, orderId, phone, partName, price);
-    };
 
-    window.handleCustomerCall = async (sellerId, orderId, phone, partName, price) => {
-        if(!confirm("تأكيد الاتصال؟ سيتم إغلاق الطلب وحجزه لك.")) return;
+        currentReviewSellerId = sellerId;
+        currentReviewOrderId = orderId; 
         
-        try {
-            const orderRef = doc(db, "orders", orderId);
-            const orderSnap = await getDoc(orderRef);
-            if(orderSnap.exists() && orderSnap.data().status === 'sold') { return; }
-
-            const qOffer = query(collection(db, "offers"), where("orderId", "==", orderId), where("sellerId", "==", sellerId));
-            const offerSnap = await getDocs(qOffer);
-
-            const batch = writeBatch(db);
-            offerSnap.forEach(doc => { batch.delete(doc.ref); });
-
-            batch.update(doc(db, "sellers", sellerId), { balance: increment(-50) });
-            batch.update(orderRef, { status: 'sold', soldAt: serverTimestamp() });
-            batch.set(doc(collection(db, "sales")), { sellerId, partName, price, soldAt: serverTimestamp(), orderId });
-            
-            await batch.commit();
-            window.location.href = `tel:${phone}`;
-            createPostCallRatingModal(sellerId, orderId);
-
-        } catch(e) { 
-            console.error(e); 
-            alert("حدث خطأ أثناء العملية، يرجى المحاولة مرة أخرى.");
+        if(window.openReviewModal) {
+            window.openReviewModal(sellerName, sellerWilaya);
         }
-    };
+
+        window.location.href = `tel:${phone}`;
+
+    } catch(e) { 
+        console.error(e); 
+        alert("حدث خطأ أثناء العملية.");
+        if(btn) { btn.disabled = false; btn.innerText = "كشف الرقم والاتصال"; }
+    }
+};
+
+// --- زر إرسال التقييم + حذف العروض ---
+const submitReviewBtn = document.getElementById('submitReviewBtn');
+if (submitReviewBtn) {
+    submitReviewBtn.addEventListener('click', async () => {
+        const stars = document.querySelectorAll('#starContainer .text-orange-500').length;
+        const text = document.getElementById('reviewText').value;
+        const sellerId = currentReviewSellerId;
+        const orderId = currentReviewOrderId;
+
+        if (!sellerId) return alert("حدث خطأ: لم يتم تحديد التاجر.");
+        if (stars === 0) return alert("يرجى تحديد عدد النجوم.");
+
+        submitReviewBtn.innerText = "جاري الإرسال...";
+        submitReviewBtn.disabled = true;
+
+        try {
+            // حفظ التقييم
+            await addDoc(collection(db, "ratings"), {
+                sellerId: sellerId,
+                stars: stars,
+                comment: text,
+                createdAt: serverTimestamp()
+            });
+
+            // حذف العروض المرتبطة بالطلب (تنظيف)
+            if (orderId) {
+                const qOffers = query(collection(db, "offers"), where("orderId", "==", orderId));
+                const snap = await getDocs(qOffers);
+                const batch = writeBatch(db);
+                snap.forEach((doc) => { batch.delete(doc.ref); });
+                await batch.commit();
+            }
+
+            alert("شكراً لك! تم إرسال تقييمك.");
+            if(window.closeReviewModal) window.closeReviewModal();
+            document.getElementById('reviewText').value = "";
+
+        } catch (e) {
+            console.error(e);
+            alert("حدث خطأ أثناء إرسال التقييم.");
+        } finally {
+            submitReviewBtn.innerText = "إرسال التقييم";
+            submitReviewBtn.disabled = false;
+        }
+    });
 }
 
 // ============================================================
@@ -611,10 +574,9 @@ if (document.getElementById('headerShopName')) {
         });
         startListeners();
         setupChangePassword();
-        setupBalanceRequest(); // <-- (وظيفة جديدة)
+        setupBalanceRequest(); 
     }
 
-    // --- الوظيفة الجديدة: إعداد زر طلب الرصيد ---
     function setupBalanceRequest() {
         const btnSendReq = document.getElementById('btnRequestBalance');
         const amountInput = document.getElementById('reqAmount');
@@ -624,17 +586,14 @@ if (document.getElementById('headerShopName')) {
             btnSendReq.addEventListener('click', async () => {
                 const amount = parseInt(amountInput.value);
                 if (!amount || amount <= 0) return alert("يرجى إدخال مبلغ صحيح");
-                
                 const originalText = btnSendReq.innerText;
                 btnSendReq.innerText = "جاري الإرسال...";
                 btnSendReq.disabled = true;
-                
                 try {
                     let receiptBase64 = null;
                     if (receiptInput && receiptInput.files[0]) {
                         receiptBase64 = await compressImage(receiptInput.files[0]);
                     }
-                    
                     await addDoc(collection(db, "balance_requests"), {
                         sellerId: currentSellerId,
                         shopName: currentSellerData.shopName,
@@ -644,11 +603,9 @@ if (document.getElementById('headerShopName')) {
                         status: "pending", 
                         createdAt: serverTimestamp()
                     });
-                    
                     alert("✅ تم إرسال طلب الشحن للإدارة بنجاح!");
                     amountInput.value = "";
                     if (receiptInput) receiptInput.value = "";
-                    
                 } catch (e) {
                     console.error(e);
                     alert("حدث خطأ أثناء الإرسال: " + e.message);
@@ -738,54 +695,91 @@ if (document.getElementById('headerShopName')) {
         });
     }
 
+    // --- دالة عرض السوق (Market) المحدثة ---
     function renderMarketOrders() {
         const list = document.getElementById('ordersList');
         if(!list) return;
         list.innerHTML = "";
+        
         const now = new Date();
         const FOUR_HOURS = 4 * 60 * 60 * 1000;
+        const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
         const visible = allMarketOrders.filter(o => {
-            if (myOfferedOrderIds.has(o.id) && o.status !== 'sold') return false;
-            if (o.status === 'sold') { return o.soldAt ? (now - o.soldAt.toDate()) < FOUR_HOURS : true; }
+            // 1. إذا كان الطلب مباع
+            if (o.status === 'sold') {
+                if (o.soldAt) {
+                    const soldDate = o.soldAt.toDate ? o.soldAt.toDate() : new Date(o.soldAt);
+                    const diff = now - soldDate;
+                    return diff < FOUR_HOURS; // يظهر لمدة 4 ساعات فقط
+                }
+                return false;
+            }
+            // 2. إذا كان الطلب نشط
+            if (o.createdAt) {
+                const createdDate = o.createdAt.toDate ? o.createdAt.toDate() : new Date(o.createdAt);
+                const age = now - createdDate;
+                if (age > THIRTY_DAYS) return false; // يخفي القديم جداً (30 يوم)
+            }
+            // 3. إذا قدمت عرضاً
+            if (myOfferedOrderIds.has(o.id)) return false;
+
             return true;
         });
-        if(visible.length === 0) { list.innerHTML = "<p class='text-center text-gray-400 mt-10 text-xs'>لا طلبات متاحة حالياً</p>"; return; }
+
+        if(visible.length === 0) { 
+            list.innerHTML = `<div class="flex flex-col items-center justify-center py-10 opacity-60"><p class='text-center text-gray-400 text-sm'>لا توجد طلبات جديدة حالياً</p></div>`; 
+            return; 
+        }
         
         visible.forEach(o => {
             const isSold = (o.status === 'sold');
             if (isSold) {
                 list.innerHTML += `
-                <div class="bg-gray-50 border border-gray-100 p-5 rounded-2xl mb-4 relative opacity-70 grayscale">
-                    <div class="absolute top-0 left-0 bg-gray-500 text-white text-[10px] px-3 py-1 rounded-br-xl font-bold">مباع 🔒</div>
-                    <div class="mt-3">
-                        <h3 class="font-bold text-gray-500 text-sm line-through">${o.partName}</h3>
-                        <span class="text-[9px] text-gray-400 block mt-1">${timeAgo(o.soldAt || o.createdAt)}</span>
+                <div class="bg-gray-800/50 border border-gray-700 p-5 rounded-2xl mb-4 relative opacity-60 grayscale select-none">
+                    <div class="absolute top-0 left-0 bg-gray-600 text-white text-[10px] px-3 py-1 rounded-br-xl font-bold flex items-center gap-1">مباع 🔒</div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-gray-400 text-sm line-through decoration-red-500/50">${o.partName}</h3>
+                            <p class="text-[10px] text-gray-500">${o.carMake} ${o.carYear || ''}</p>
+                        </div>
+                        <span class="text-[9px] text-gray-500 font-mono bg-gray-900 px-2 py-1 rounded">بيع منذ: ${timeAgo(o.soldAt)}</span>
                     </div>
                 </div>`;
             } else {
                 list.innerHTML += `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-4 hover:shadow-md transition cursor-pointer relative overflow-hidden group" onclick="openDetailsModal('${o.id}')">
-                    <div class="absolute top-0 right-0 w-1 h-full bg-brand-500 rounded-l-full group-hover:w-2 transition-all"></div>
-                    <div class="flex justify-between items-start mb-3 pointer-events-none pl-3">
-                        <h3 class="font-bold text-gray-900 text-base">${o.partName}</h3>
-                        <span class="text-[10px] bg-gray-100 px-2 py-1 rounded-full text-gray-500 flex items-center gap-1">
+                <div class="bg-white p-5 rounded-2xl shadow-lg shadow-gray-900/10 border border-gray-100 mb-4 hover:shadow-xl transition-all duration-300 cursor-pointer relative overflow-hidden group transform hover:-translate-y-1" onclick="openDetailsModal('${o.id}')">
+                    <div class="absolute top-0 right-0 w-1.5 h-full bg-gradient-to-b from-orange-500 to-orange-600 rounded-l-full group-hover:w-2.5 transition-all"></div>
+                    <div class="flex justify-between items-start mb-3 pl-3">
+                        <div>
+                            <h3 class="font-black text-gray-900 text-lg leading-tight mb-1">${o.partName}</h3>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded border border-orange-100">${o.carMake}</span>
+                                <span class="text-[10px] text-gray-400 font-mono">${o.carYear || ''}</span>
+                            </div>
+                        </div>
+                        <span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-full flex items-center gap-1 font-medium">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             ${timeAgo(o.createdAt)}
                         </span>
                     </div>
-                    <div class="flex justify-between items-end mt-2 pointer-events-none pl-3">
-                        <div>
-                            <p class="text-xs text-gray-600 font-medium">${o.carMake} ${o.carYear||''}</p>
-                            <p class="text-[10px] text-gray-400 mt-0.5">سيارة</p>
+                    <div class="flex justify-between items-end mt-4 pl-3">
+                        <div class="flex items-center gap-1 text-gray-400 text-[10px]">
+                            📍 ${o.wilaya ? getWilayaName(o.wilaya) : 'الجزائر'}
                         </div>
-                        <span class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1 group-hover:bg-brand-600 transition">
+                        <span class="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 group-hover:bg-orange-600 transition-colors">
                             معاينة
-                            <svg class="w-3 h-3 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            <svg class="w-3 h-3 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </span>
                     </div>
                 </div>`;
             }
         });
+    }
+    
+    function getWilayaName(num) {
+        const wilayas = ["Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", "Béchar", "Blida", "Bouira", "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Alger", "Djelfa", "Jijel", "Sétif", "Saïda", "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma", "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", "Ouargla", "Oran", "El Bayadh", "Illizi", "Bordj Bou Arreridj", "Boumerdès", "El Tarf", "Tindouf", "Tissemsilt", "El Oued", "Khenchela", "Souk Ahras", "Tipaza", "Mila", "Aïn Defla", "Naâma", "Aïn Témouchent", "Ghardaïa", "Relizane", "Timimoun", "Bordj Badji Mokhtar", "Ouled Djellal", "Béni Abbès", "In Salah", "In Guezzam", "Touggourt", "Djanet", "El M'Ghair", "El Meniaa"];
+        return wilayas[parseInt(num)-1] || '---';
     }
 
     const btnOpenOffer = document.getElementById('btnOpenOffer');
@@ -849,21 +843,17 @@ if (document.getElementById('headerShopName')) {
         const sendBtn = document.getElementById('sendOfferBtn');
     if(sendBtn) {
         sendBtn.addEventListener('click', async () => {
-            
-            // 1. التحقق من الرصيد أولاً
             if (currentSellerData.balance < 50) {
                 alert("⚠️ عذراً، رصيدك غير كافٍ لإرسال العروض.\nيجب أن يكون لديك 50 دج على الأقل.");
                 return; 
             }
 
-            // 2. التحقق من المدخلات
             const price = document.getElementById('offerPrice').value;
             if(!price) return alert("أدخل السعر");
 
             const condition = document.getElementById('offerCondition') ? document.getElementById('offerCondition').value : "غير محدد";
             const notes = document.getElementById('offerNotes') ? document.getElementById('offerNotes').value : "";
             
-            // 3. معالجة الصور
             sellerImagesBase64 = [];
             const files = [
                 document.getElementById('sellerImg1')?.files[0],
@@ -883,7 +873,6 @@ if (document.getElementById('headerShopName')) {
                 } catch(err) { alert("خطأ في الصور"); sendBtn.disabled = false; return; }
             }
 
-            // 4. إرسال البيانات
             sendBtn.innerText = "جاري الإرسال...";
             try {
                 const partNameEl = document.getElementById('detailPartName');
@@ -919,39 +908,28 @@ if (document.getElementById('headerShopName')) {
     if (btn) {
         btn.addEventListener('click', async () => {
             const newPass = document.getElementById('newPass').value;
-            
-            // التحقق من قوة كلمة السر (فايربيس يطلب 6 أحرف على الأقل)
             if (!newPass || newPass.length < 6) {
                 return alert("كلمة المرور يجب أن تكون 6 أحرف أو أكثر.");
             }
-            
-            // التأكد من أن المستخدم مسجل دخول حالياً
             const user = auth.currentUser;
             if (!user) return alert("يرجى إعادة تسجيل الدخول للمتابعة.");
             
-            // تغيير نص الزر وتعطيله
             const originalText = btn.innerText;
             btn.innerText = "جاري التحديث...";
             btn.disabled = true;
             
             try {
-                // التحديث الآمن في نظام المصادقة
                 await updatePassword(user, newPass);
-                
                 alert("✅ تم تغيير كلمة المرور بنجاح!");
                 document.getElementById('newPass').value = "";
-                
             } catch (error) {
                 console.error("Error updating password:", error);
-                
-                // هذا الخطأ يظهر إذا مر وقت طويل على تسجيل الدخول (إجراء أمني من جوجل)
                 if (error.code === 'auth/requires-recent-login') {
                     alert("⚠️ لأسباب أمنية، يجب عليك تسجيل الخروج ثم الدخول مرة أخرى لتتمكن من تغيير كلمة المرور.");
                 } else {
                     alert("حدث خطأ: " + error.message);
                 }
             } finally {
-                // إعادة الزر لوضعه الطبيعي
                 btn.innerText = originalText;
                 btn.disabled = false;
             }
@@ -971,13 +949,12 @@ if (document.getElementById('headerShopName')) {
 }
 
 // ============================================================
-// 3. تسجيل الدخول والتسجيل (LOGIN & REGISTER) - معدل لاستخدام الإيميل والتحقق
+// 3. تسجيل الدخول والتسجيل (LOGIN & REGISTER)
 // ============================================================
 
 const sellerLoginBtn = document.getElementById('sellerLoginBtn');
 if (sellerLoginBtn) {
     sellerLoginBtn.addEventListener('click', async () => {
-        // تم التعديل: الاعتماد على الإيميل
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
         
@@ -987,11 +964,9 @@ if (sellerLoginBtn) {
         sellerLoginBtn.disabled = true;
 
         try {
-            // تسجيل الدخول باستخدام Firebase Auth
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // التحقق من بيانات البائع في Firestore
             const docRef = doc(db, "sellers", user.uid);
             const docSnap = await getDoc(docRef);
 
@@ -1045,8 +1020,8 @@ const btnRegister = document.getElementById('btnRegister');
 if (btnRegister) {
     btnRegister.addEventListener('click', async () => {
         const shopName = document.getElementById('regShopName').value;
-        const phone = document.getElementById('regPhone').value; // يبقى الهاتف للتواصل
-        const email = document.getElementById('regEmail').value; // تم إضافة الإيميل
+        const phone = document.getElementById('regPhone').value;
+        const email = document.getElementById('regEmail').value;
         const password = document.getElementById('regPassword').value;
         const wilaya = document.getElementById('regWilaya').value;
         const baladiya = document.getElementById('regBaladiya').value;
@@ -1067,11 +1042,9 @@ if (btnRegister) {
             const file = fileInput.files[0];
             const compressedBase64 = await compressImage(file);
 
-            // 1. إنشاء الحساب في Authentication
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // 2. حفظ البيانات في Firestore (باستخدام UID كمعرف)
             await setDoc(doc(db, "sellers", user.uid), {
                 shopName: shopName,
                 phone: phone,
@@ -1081,13 +1054,12 @@ if (btnRegister) {
                 shopImage: compressedBase64,
                 balance: 1500,
                 isBlocked: false,
-                isVerified: false, // غير مفعل حتى يراجعه الأدمن
+                isVerified: false,
                 createdAt: serverTimestamp()
             });
 
             alert("✅ تم إرسال طلبك بنجاح!\nسيتم تفعيل حسابك من قبل الإدارة بعد مراجعة بياناتك.");
 
-            // تنظيف الحقول
             document.getElementById('regShopName').value = "";
             document.getElementById('regPhone').value = "";
             document.getElementById('regEmail').value = "";
@@ -1113,7 +1085,6 @@ if (btnRegister) {
 const btnSendReset = document.getElementById('btnSendReset');
 if (btnSendReset) {
     btnSendReset.addEventListener('click', async () => {
-        // تم التعديل: استعادة كلمة السر بالإيميل
         const email = document.getElementById('forgotEmail').value.trim();
         if (!email) { alert("أدخل البريد الإلكتروني"); return; }
         
@@ -1146,319 +1117,294 @@ if (btnAdminLogin) {
             document.getElementById('adminLoginScreen').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
             initAdminPanel();
-        } else { alert("خطأ"); }
-    });
-
-    // تم نقل الكود إلى داخل دالة initAdminPanel للحفاظ على النسق وتنظيم الأدمن
-    
-    function initAdminPanel() {
-        // مخزن البيانات المحلي (لأجل البحث السريع)
-        let state = {
-            pending: [],
-            orders: [],
-            sellers: [],
-            requests: []
-        };
-
-        // ========================================================
-        // دوال الرسم (Render Functions)
-        // ========================================================
-        
-        // 1. رسم قائمة الانتظار
-        const renderPending = (data) => {
-            const list = document.getElementById('adminPendingList');
-            if(!list) return;
-            list.innerHTML = "";
-            if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4 border border-slate-700 border-dashed rounded-lg">لا توجد نتائج</p>`; return; }
-            
-            data.forEach(item => {
-                const d = item.data;
-                const img = d.shopImage || 'https://via.placeholder.com/100';
-                list.innerHTML += `
-                <div class="bg-slate-700 p-4 rounded-xl border border-slate-600 flex flex-col sm:flex-row gap-4 items-start sm:items-center animate-slide-up hover:border-slate-500 transition">
-                  <img src="${img}" class="w-16 h-16 rounded-lg object-cover border border-slate-500 cursor-zoom-in" onclick="window.open(this.src)">
-                  <div class="flex-1">
-                    <h4 class="font-bold text-white text-base">${d.shopName}</h4>
-                    <p class="text-xs text-gray-400 mb-0.5">📍 ${d.wilaya} - ${d.baladiya}</p>
-                    <p class="text-xs text-blue-300 font-mono tracking-wider">📱 ${d.phone}</p>
-                  </div>
-                  <div class="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
-                    <button onclick="adminApproveSeller('${item.id}')" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold py-2 px-3 rounded shadow transition">✅ قبول</button>
-                    <button onclick="adminRejectSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-[10px] font-bold py-2 px-3 rounded transition">❌ رفض</button>
-                  </div>
-                </div>`;
-            });
-        };
-
-        // 2. رسم قائمة الطلبات
-        const renderOrders = (data) => {
-            const list = document.getElementById('adminOrdersList');
-            if(!list) return;
-            list.innerHTML = "";
-            if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4 border border-slate-700 border-dashed rounded-lg">لا توجد نتائج</p>`; return; }
-
-            data.forEach(item => {
-                const d = item.data;
-                list.innerHTML += `
-                <div class="bg-slate-700 p-3 rounded-xl border border-slate-600 mb-2 flex justify-between items-center hover:bg-slate-600/50 transition">
-                    <div>
-                        <p class="font-bold text-sm text-white">${d.partName}</p>
-                        <div class="flex gap-2 mt-1">
-                            <span class="text-[10px] text-gray-400 bg-slate-800 px-2 py-0.5 rounded">${d.carMake}</span>
-                            <span class="text-[10px] text-blue-300 font-mono">${d.phoneNumber}</span>
-                        </div>
-                    </div>
-                    <button onclick="adminDeleteDoc('orders','${item.id}')" class="text-red-300 hover:text-red-200 text-xs bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded border border-red-500/20 transition">حذف</button>
-                </div>`;
-            });
-        };
-
-        // 3. رسم قائمة التجار
-        const renderSellers = (data) => {
-            const list = document.getElementById('adminSellersList');
-            if(!list) return;
-            list.innerHTML = "";
-            if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4 border border-slate-700 border-dashed rounded-lg">لا توجد نتائج</p>`; return; }
-
-            data.forEach(item => {
-                const d = item.data;
-                list.innerHTML += `
-                <div class="bg-slate-700 p-3 rounded-xl border border-slate-600 mb-2 hover:border-slate-500 transition">
-                    <div class="flex justify-between items-center mb-1">
-                        <p class="font-bold text-white text-sm">${d.shopName}</p>
-                        <span class="${d.isBlocked ? 'text-red-400 bg-red-400/10' : 'text-green-400 bg-green-400/10'} text-[10px] px-2 py-0.5 rounded border ${d.isBlocked ? 'border-red-400/20' : 'border-green-400/20'}">${d.isBlocked ? 'محظور' : 'نشط'}</span>
-                    </div>
-                    <p class="text-xs text-gray-400 font-mono mb-2 flex gap-2">
-                        <span>📱 ${d.phone}</span>
-                        <span>📍 ${d.wilaya || '--'}</span>
-                        <span class="text-yellow-500">💰 ${d.balance} DA</span>
-                    </p>
-                    <div class="flex gap-2">
-                        <button onclick="adminToggleBlock('${item.id}', ${d.isBlocked})" class="flex-1 bg-slate-600 hover:bg-slate-500 text-[10px] py-1.5 rounded text-gray-200 transition">حظر/فك</button>
-                        <button onclick="adminAddBalance('${item.id}')" class="flex-1 bg-green-600 hover:bg-green-500 text-[10px] py-1.5 rounded text-white font-bold transition">+ رصيد</button>
-                        <button onclick="adminDeleteSeller('${item.id}')" class="flex-1 bg-red-600/10 hover:bg-red-600/20 text-red-300 border border-red-500/20 text-[10px] py-1.5 rounded transition">مسح</button>
-                    </div>
-                </div>`;
-            });
-        };
-
-        // 4. رسم طلبات الاسترجاع
-        const renderRequests = (data) => {
-            const list = document.getElementById('adminRequestsList');
-            if(!list) return;
-            list.innerHTML = "";
-            if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4">لا توجد طلبات</p>`; return; }
-            
-            data.forEach(item => {
-                const d = item.data;
-                list.innerHTML += `
-                <div class="bg-slate-700 p-3 rounded border border-slate-600 mb-2 flex justify-between items-center">
-                    <div>
-                        <p class="text-white font-mono text-sm">${d.phone}</p>
-                        <p class="text-[10px] text-gray-400">طلب استعادة</p>
-                    </div>
-                    <div class="flex gap-2 items-center">
-                        <button onclick="adminRevealPass('${d.phone}')" class="text-blue-300 text-xs bg-blue-900/50 border border-blue-800 px-2 py-1 rounded hover:bg-blue-800 transition">👁️ كشف</button>
-                        <button onclick="adminDeleteDoc('admin_requests', '${item.id}')" class="text-red-400 text-xs bg-slate-800 px-2 py-1 rounded hover:bg-red-900/50">تم</button>
-                    </div>
-                </div>`;
-            });
-        };
-
-        // ========================================================
-        // دالة البحث الشامل (Global Search Logic)
-        // ========================================================
-        const performGlobalSearch = () => {
-            const searchEl = document.getElementById('globalAdminSearch');
-            // إذا لم يكن عنصر البحث موجوداً، نعرض كل البيانات كما هي
-            const term = searchEl ? searchEl.value.toLowerCase().trim() : "";
-
-            // 1. فلترة الانتظار
-            const filteredPending = state.pending.filter(i => 
-                (i.data.shopName && i.data.shopName.toLowerCase().includes(term)) ||
-                (i.data.phone && i.data.phone.includes(term)) ||
-                (i.data.wilaya && i.data.wilaya.includes(term))
-            );
-            renderPending(filteredPending);
-
-            // 2. فلترة الطلبات
-            const filteredOrders = state.orders.filter(i => 
-                (i.data.partName && i.data.partName.toLowerCase().includes(term)) ||
-                (i.data.phoneNumber && i.data.phoneNumber.includes(term)) ||
-                (i.data.carMake && i.data.carMake.toLowerCase().includes(term))
-            );
-            renderOrders(filteredOrders);
-
-            // 3. فلترة التجار
-            const filteredSellers = state.sellers.filter(i => 
-                (i.data.shopName && i.data.shopName.toLowerCase().includes(term)) ||
-                (i.data.phone && i.data.phone.includes(term)) ||
-                (i.data.wilaya && i.data.wilaya.includes(term))
-            );
-            renderSellers(filteredSellers);
-
-            // 4. فلترة طلبات الاسترجاع
-            const filteredRequests = state.requests.filter(i => 
-                (i.data.phone && i.data.phone.includes(term))
-            );
-            renderRequests(filteredRequests);
-        };
-
-        // ربط حدث الكتابة بدالة البحث
-        const searchInput = document.getElementById('globalAdminSearch');
-        if(searchInput) {
-            searchInput.addEventListener('input', performGlobalSearch);
+        } else {
+            alert("خطأ");
         }
+    });
+} // <--- هذا هو القوس الذي كان مفقوداً وتمت إضافته فقط
 
-        // ========================================================
-        // جلب البيانات (Listeners)
-        // ========================================================
+// ============================================================
+// دالة لوحة الأدمن (مع البحث الشامل المحدث)
+// ============================================================
+function initAdminPanel() {
+    // مخزن البيانات المحلي (يحتوي دائماً على النسخة الكاملة من البيانات)
+    let state = {
+        pending: [],
+        orders: [],
+        sellers: [],
+        balanceRequests: [], // أضفنا طلبات الرصيد هنا
+        requests: []
+    };
 
-        // أ) جلب الانتظار
-        onSnapshot(query(collection(db, "sellers"), where("isVerified", "==", false)), (snap) => {
-            const el = document.getElementById('statPending'); if(el) el.innerText = snap.size;
-            state.pending = snap.docs.map(d => ({id: d.id, data: d.data()}));
-            performGlobalSearch();
+    // ----------------------------------------------------
+    // 1. دالة البحث والفلترة المركزية (العقل المدبر)
+    // ----------------------------------------------------
+    const performGlobalSearch = () => {
+        const searchEl = document.getElementById('globalAdminSearch');
+        // تحويل النص لحروف صغيرة ومسح الفراغات للبحث الدقيق
+        const term = searchEl ? searchEl.value.toLowerCase().trim() : "";
+
+        // --- أ) فلترة الانتظار (Pending) ---
+        // نبحث في: اسم المتجر، الهاتف، الولاية، الإيميل
+        const filteredPending = state.pending.filter(i => {
+            const d = i.data;
+            const fullText = `${d.shopName} ${d.phone} ${d.wilaya} ${d.baladiya} ${d.email}`.toLowerCase();
+            return fullText.includes(term);
         });
+        renderPending(filteredPending);
 
-        // ب) جلب الطلبات (تم التعديل: إخفاء المباع)
-        onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
-            const activeOrders = snap.docs
-                .map(d => ({ id: d.id, data: d.data() }))
-                .filter(item => item.data.status !== 'sold');
-            
-            const el = document.getElementById('statOrders');
-            if (el) el.innerText = activeOrders.length;
-            
-            state.orders = activeOrders;
-            performGlobalSearch();
+        // --- ب) فلترة الطلبات (Orders) ---
+        // نبحث في: اسم القطعة، السيارة، الهاتف، الكود السري، الموديل
+        const filteredOrders = state.orders.filter(i => {
+            const d = i.data;
+            const fullText = `${d.partName} ${d.carMake} ${d.carModel || ''} ${d.phoneNumber} ${d.secretCode || ''} ${d.wilaya || ''}`.toLowerCase();
+            return fullText.includes(term);
         });
+        renderOrders(filteredOrders);
 
-        // ج) جلب التجار النشطين
-        onSnapshot(collection(db, "sellers"), (snap) => {
-            const verifiedCount = snap.docs.filter(d => d.data().isVerified).length;
-            const el = document.getElementById('statSellers'); if(el) el.innerText = verifiedCount;
-            
-            state.sellers = snap.docs
-                .map(d => ({id: d.id, data: d.data()}))
-                .filter(item => item.data.isVerified === true);
-                
-            performGlobalSearch();
+        // --- ج) فلترة التجار (Sellers) ---
+        // نبحث في: اسم المتجر، الهاتف، الولاية
+        const filteredSellers = state.sellers.filter(i => {
+            const d = i.data;
+            const fullText = `${d.shopName} ${d.phone} ${d.wilaya} ${d.email}`.toLowerCase();
+            return fullText.includes(term);
         });
+        renderSellers(filteredSellers);
 
-        // د) جلب طلبات الاسترجاع
-        onSnapshot(collection(db, "admin_requests"), (snap) => {
-            state.requests = snap.docs.map(d => ({id: d.id, data: d.data()}));
-            performGlobalSearch();
+        // --- د) فلترة طلبات الرصيد (Balance) ---
+        // نبحث في: اسم المتجر، الهاتف، المبلغ
+        const filteredBalance = state.balanceRequests.filter(i => {
+            const d = i.data;
+            const fullText = `${d.shopName} ${d.phone} ${d.amount}`.toLowerCase();
+            return fullText.includes(term);
         });
+        renderBalance(filteredBalance);
+    };
 
-        // هـ) <-- وظيفة جديدة: جلب طلبات الشحن
-        onSnapshot(query(collection(db, "balance_requests"), where("status", "==", "pending")), (snap) => {
-            const list = document.getElementById('adminBalanceRequestsList'); 
-            const counter = document.getElementById('statBalance');
-            if(counter) counter.innerText = snap.size > 0 ? snap.size : '--';
-            
-            if (!list) return;
-            
-            list.innerHTML = "";
-            if (snap.empty) {
-                list.innerHTML = `<p class="text-center text-gray-500 text-xs py-4">لا توجد طلبات شحن</p>`;
-                return;
-            }
-            
-            snap.forEach(docSnap => {
-                const r = docSnap.data();
-                const reqId = docSnap.id;
-                // عرض صورة الوصل إن وجدت
-                const imgHtml = r.receiptImage ?
-                    `<div class="mb-2"><img src="${r.receiptImage}" class="h-16 rounded border border-gray-500 cursor-zoom-in" onclick="window.open(this.src)"></div>` :
-                    `<div class="text-[10px] text-gray-400 mb-2">بدون صورة وصل</div>`;
-                
-                list.innerHTML += `
-                <div class="bg-slate-700 p-3 rounded-xl border border-slate-600 mb-2 animate-slide-up">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="font-bold text-white text-sm">🏪 ${r.shopName}</p>
-                            <p class="text-xs text-blue-300 font-mono">📱 ${r.phone}</p>
-                            <p class="text-green-400 font-bold text-lg mt-1">💰 طلب: ${r.amount} DA</p>
-                        </div>
-                        ${imgHtml}
-                    </div>
-                    <div class="flex gap-2 mt-3">
-                        <button onclick="adminApproveTopUp('${reqId}', '${r.sellerId}', ${r.amount})" 
-                            class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 rounded transition">
-                            ✅ قبول وشحن
-                        </button>
-                        <button onclick="adminRejectTopUp('${reqId}')" 
-                            class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-xs py-2 rounded transition">
-                            ❌ رفض
-                        </button>
-                    </div>
-                </div>`;
-            });
-        });
+    // ربط حدث الكتابة بدالة البحث
+    const searchInput = document.getElementById('globalAdminSearch');
+    if (searchInput) {
+        // "input" يعني التحديث فوراً عند كتابة أي حرف
+        searchInput.addEventListener('input', performGlobalSearch);
     }
 
-    // --- دوال الأدمن المساعدة ---
-    // (تنبيه: بما أننا نستخدم Authentication، فإن كشف كلمة المرور لم يعد ممكناً لأنها مشفرة)
-    window.adminRevealPass = async (phone) => {
-        alert("تنبيه: النظام يعمل الآن بنظام المصادقة الآمنة.\nكلمات المرور مشفرة ولا يمكن كشفها.\nيرجى استخدام زر استعادة كلمة السر في صفحة الدخول.");
+    // ----------------------------------------------------
+    // 2. دوال الرسم (Render Functions)
+    // ----------------------------------------------------
+
+    const renderPending = (data) => {
+        const list = document.getElementById('adminPendingList');
+        if (!list) return;
+        list.innerHTML = "";
+        if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10">لا توجد نتائج مطابقة</p>`; return; }
+
+        data.forEach(item => {
+            const d = item.data;
+            const img = d.shopImage || 'https://via.placeholder.com/100';
+            list.innerHTML += `
+<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 flex flex-col sm:flex-row gap-4 items-start sm:items-center animate-slide-up hover:border-yellow-500/30 transition">
+  <img src="${img}" class="w-16 h-16 rounded-xl object-cover border border-gray-600 cursor-zoom-in" onclick="window.open(this.src)">
+  <div class="flex-1">
+    <h4 class="font-bold text-white text-base">${d.shopName}</h4>
+    <p class="text-xs text-gray-400 mb-0.5">📍 ${d.wilaya} - ${d.baladiya}</p>
+    <p class="text-xs text-blue-400 font-mono tracking-wider">📱 ${d.phone}</p>
+  </div>
+  <div class="flex gap-2 w-full sm:w-auto">
+    <button onclick="adminApproveSeller('${item.id}')" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold py-2 px-4 rounded-xl transition">قبول</button>
+    <button onclick="adminRejectSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold py-2 px-4 rounded-xl transition">رفض</button>
+  </div>
+</div>`;
+        });
     };
 
-    window.adminDeleteDoc = async (c, i) => { if(confirm("حذف الطلب؟")) await deleteDoc(doc(db, c, i)); };
-    window.adminToggleBlock = async (id, status) => { await updateDoc(doc(db, "sellers", id), { isBlocked: !status }); };
-    window.adminAddBalance = async (id) => { const a = prompt("المبلغ:"); if(a) await updateDoc(doc(db, "sellers", id), { balance: increment(parseInt(a)) }); };
-    
-    window.adminDeleteSeller = async (id) => {
-        if (!confirm("هل أنت متأكد من حذف هذا الحساب؟")) return;
+    const renderBalance = (data) => {
+        const list = document.getElementById('adminBalanceRequestsList');
+        if (!list) return;
+        list.innerHTML = "";
+        if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10 border border-dashed border-gray-800 rounded-2xl">لا توجد طلبات شحن</p>`; return; }
+
+        data.forEach(item => {
+            const r = item.data;
+            const imgHtml = r.receiptImage ? `<div class="mb-2"><img src="${r.receiptImage}" class="h-12 w-auto rounded border border-gray-600 cursor-zoom-in" onclick="window.open(this.src)"></div>` : ``;
+
+            list.innerHTML += `
+<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 animate-slide-up hover:border-purple-500/30 transition">
+  <div class="flex justify-between items-start">
+    <div>
+      <p class="font-bold text-white text-sm mb-1">🏪 ${r.shopName}</p>
+      <p class="text-xs text-gray-400 font-mono mb-2">📱 ${r.phone}</p>
+      <div class="flex items-center gap-2">
+        <span class="text-purple-400 font-black text-xl">${r.amount} <span class="text-xs">DA</span></span>
+        <span class="text-[10px] text-gray-500 bg-gray-900 px-2 py-1 rounded">طلب شحن</span>
+      </div>
+    </div>
+    ${imgHtml}
+  </div>
+  <div class="flex gap-2 mt-4 pt-3 border-t border-gray-700">
+    <button onclick="adminApproveTopUp('${item.id}', '${r.sellerId}', ${r.amount})" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 rounded-xl transition">✅ تأكيد الشحن</button>
+    <button onclick="adminRejectTopUp('${item.id}')" class="px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold py-2.5 rounded-xl transition">رفض</button>
+  </div>
+</div>`;
+        });
+    };
+
+    const renderOrders = (data) => {
+        const list = document.getElementById('adminOrdersList');
+        if (!list) return;
+        list.innerHTML = "";
+        if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10">لا توجد نتائج مطابقة</p>`; return; }
+
+        data.forEach(item => {
+            const d = item.data;
+            list.innerHTML += `
+<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 flex justify-between items-center hover:border-green-500/30 transition">
+  <div>
+    <p class="font-bold text-sm text-white mb-1">${d.partName}</p>
+    <div class="flex flex-wrap gap-2">
+      <span class="text-[10px] text-gray-300 bg-gray-700 px-2 py-0.5 rounded border border-gray-600">${d.carMake} ${d.carModel || ''}</span>
+      <span class="text-[10px] text-orange-400 font-mono bg-orange-400/10 px-2 py-0.5 rounded">${d.phoneNumber}</span>
+      <span class="text-[10px] text-gray-500 bg-black/20 px-2 py-0.5 rounded font-mono tracking-widest">Code: ${d.secretCode || '---'}</span>
+    </div>
+  </div>
+  <button onclick="adminDeleteDoc('orders','${item.id}')" class="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+    </svg>
+  </button>
+</div>`;
+        });
+    };
+
+    const renderSellers = (data) => {
+        const list = document.getElementById('adminSellersList');
+        if (!list) return;
+        list.innerHTML = "";
+        if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10">لا توجد نتائج مطابقة</p>`; return; }
+
+        data.forEach(item => {
+            const d = item.data;
+            list.innerHTML += `
+<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 hover:border-blue-500/30 transition">
+  <div class="flex justify-between items-start mb-2">
+    <div>
+      <p class="font-bold text-white text-base">${d.shopName}</p>
+      <p class="text-xs text-gray-400">📍 ${d.wilaya || '--'}</p>
+    </div>
+    <span class="${d.isBlocked ? 'text-red-400 bg-red-400/10 border-red-400/20' : 'text-green-400 bg-green-400/10 border-green-400/20'} text-[10px] px-2 py-1 rounded border font-bold">
+      ${d.isBlocked ? 'محظور' : 'نشط'}
+    </span>
+  </div>
+  
+  <div class="flex items-center justify-between bg-gray-900/50 p-2 rounded-xl mb-3">
+    <span class="text-xs text-gray-400 font-mono">${d.phone}</span>
+    <span class="text-yellow-500 font-bold text-sm">${d.balance} DA</span>
+  </div>
+  
+  <div class="flex gap-2">
+    <button onclick="adminToggleBlock('${item.id}', ${d.isBlocked})" class="flex-1 bg-gray-700 hover:bg-gray-600 text-[10px] py-2 rounded-lg text-white transition">${d.isBlocked ? 'فك الحظر' : 'حظر'}</button>
+    <button onclick="adminAddBalance('${item.id}')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-[10px] py-2 rounded-lg text-white font-bold transition">+ رصيد يدوي</button>
+    <button onclick="adminDeleteSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] py-2 rounded-lg transition">حذف</button>
+  </div>
+</div>`;
+        });
+    };
+
+    // ----------------------------------------------------
+    // 3. جلب البيانات (Listeners)
+    // ----------------------------------------------------
+
+    // أ) جلب الانتظار
+    onSnapshot(query(collection(db, "sellers"), where("isVerified", "==", false)), (snap) => {
+        const el = document.getElementById('statPending'); if (el) el.innerText = snap.size;
+        state.pending = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+        performGlobalSearch(); // تحديث العرض فوراً عبر الفلتر
+    });
+
+    // ب) جلب الطلبات (Active Only)
+    onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
+        const activeOrders = snap.docs
+            .map(d => ({ id: d.id, data: d.data() }))
+            .filter(item => item.data.status !== 'sold');
+
+        const el = document.getElementById('statOrders');
+        if (el) el.innerText = activeOrders.length;
+
+        state.orders = activeOrders;
+        performGlobalSearch();
+    });
+
+    // ج) جلب التجار النشطين
+    onSnapshot(collection(db, "sellers"), (snap) => {
+        const verifiedSellers = snap.docs.filter(d => d.data().isVerified === true);
+        const el = document.getElementById('statSellers'); if (el) el.innerText = verifiedSellers.length;
+
+        state.sellers = snap.docs
+            .map(d => ({ id: d.id, data: d.data() }))
+            .filter(item => item.data.isVerified === true);
+
+        performGlobalSearch();
+    });
+
+    // د) جلب طلبات الشحن (Balance)
+    onSnapshot(query(collection(db, "balance_requests"), where("status", "==", "pending")), (snap) => {
+        const el = document.getElementById('statBalance'); if (el) el.innerText = snap.size;
+        state.balanceRequests = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+        performGlobalSearch();
+    });
+
+    // تنظيف تلقائي عند البدء
+    async function systemAutoCleanup() {
+        const THIRTY_DAYS_AGO = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
         try {
-            const q = query(collection(db, "offers"), where("sellerId", "==", id));
-            const querySnapshot = await getDocs(q);
             const batch = writeBatch(db);
-            querySnapshot.forEach((doc) => { batch.delete(doc.ref); });
-            batch.delete(doc(db, "sellers", id));
-            await batch.commit();
-            alert("تم الحذف بنجاح");
-        } catch (error) { console.error(error); alert("خطأ: " + error.message); }
-    };
+            let count = 0;
+            // حذف الطلبات القديمة
+            const oldOrders = await getDocs(query(collection(db, "orders"), where("createdAt", "<", THIRTY_DAYS_AGO))); oldOrders.forEach(d => { batch.delete(d.ref); count++; });
+            // حذف المبيعات القديمة
+            const oldSales = await getDocs(query(collection(db, "sales"), where("soldAt", "<", THIRTY_DAYS_AGO))); oldSales.forEach(d => { batch.delete(d.ref); count++; });
 
-    window.adminApproveSeller = async (id) => {
-        if(!confirm("تفعيل هذا البائع؟")) return;
-        await updateDoc(doc(db, "sellers", id), { isVerified: true });
-        alert("تم التفعيل");
-    };
-
-    window.adminRejectSeller = async (id) => {
-        if(!confirm("حذف هذا الطلب؟")) return;
-        await deleteDoc(doc(db, "sellers", id));
-        alert("تم الحذف");
-    };
-
-    // --- الوظائف الجديدة: التحكم في طلبات الشحن ---
-    window.adminApproveTopUp = async (reqId, sellerId, amount) => {
-        if(!confirm(`هل أنت متأكد من شحن ${amount} DA لهذا التاجر؟`)) return;
-        try {
-            const batch = writeBatch(db);
-            // 1. تحديث حالة الطلب
-            batch.update(doc(db, "balance_requests", reqId), { status: 'approved', processedAt: serverTimestamp() });
-            // 2. إضافة الرصيد للتاجر
-            batch.update(doc(db, "sellers", sellerId), { balance: increment(amount) });
-            await batch.commit();
-            alert("تم شحن الرصيد بنجاح ✅");
-        } catch(e) { 
-            console.error(e); 
-            alert("خطأ أثناء العملية: " + e.message); 
-        }
-    };
-
-    window.adminRejectTopUp = async (reqId) => {
-        if(!confirm("هل تريد رفض هذا الطلب؟")) return;
-        try {
-            await updateDoc(doc(db, "balance_requests", reqId), { status: 'rejected', processedAt: serverTimestamp() });
-            alert("تم رفض الطلب ❌");
-        } catch(e) {
-            console.error(e);
-            alert("حدث خطأ.");
-        }
-    };
+            if (count > 0) { await batch.commit(); console.log("Cleaned:", count); }
+        } catch (e) { console.log("Cleanup check done."); }
+    }
+    systemAutoCleanup();
 }
+
+// --- دوال التحكم للأدمن (كما هي) ---
+window.adminDeleteDoc = async (c, i) => { if (confirm("حذف؟")) await deleteDoc(doc(db, c, i)); };
+window.adminToggleBlock = async (id, status) => { await updateDoc(doc(db, "sellers", id), { isBlocked: !status }); };
+window.adminAddBalance = async (id) => { const a = prompt("المبلغ:"); if (a) await updateDoc(doc(db, "sellers", id), { balance: increment(parseInt(a)) }); };
+
+window.adminDeleteSeller = async (id) => {
+    if (!confirm("حذف نهائي؟")) return;
+    const q = query(collection(db, "offers"), where("sellerId", "==", id));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.forEach((doc) => { batch.delete(doc.ref); });
+    batch.delete(doc(db, "sellers", id));
+    await batch.commit();
+};
+
+window.adminApproveSeller = async (id) => {
+    if (!confirm("قبول؟")) return;
+    await updateDoc(doc(db, "sellers", id), { isVerified: true });
+};
+
+window.adminRejectSeller = async (id) => {
+    if (!confirm("رفض؟")) return;
+    await deleteDoc(doc(db, "sellers", id));
+};
+
+window.adminApproveTopUp = async (reqId, sellerId, amount) => {
+    if (!confirm("تأكيد الشحن؟")) return;
+    const batch = writeBatch(db);
+    batch.update(doc(db, "balance_requests", reqId), { status: 'approved', processedAt: serverTimestamp() });
+    batch.update(doc(db, "sellers", sellerId), { balance: increment(amount) });
+    await batch.commit();
+    alert("تم الشحن");
+};
+
+window.adminRejectTopUp = async (reqId) => {
+    if (!confirm("رفض الطلب؟")) return;
+    await updateDoc(doc(db, "balance_requests", reqId), { status: 'rejected', processedAt: serverTimestamp() });
+    alert("تم الرفض");
+};
