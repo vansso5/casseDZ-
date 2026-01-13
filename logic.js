@@ -1110,18 +1110,49 @@ if (btnSendReset) {
 // ============================================================
 // 4. منطق الأدمن (ADMIN)
 // ============================================================
+if (localStorage.getItem('adminLoggedIn') === 'true') {
+    const loginScreen = document.getElementById('adminLoginScreen');
+    const dashboard = document.getElementById('adminDashboard');
+    
+    // إخفاء شاشة القفل وإظهار اللوحة
+    if (loginScreen) loginScreen.classList.add('hidden');
+    if (dashboard) dashboard.classList.remove('hidden');
+    
+    // تشغيل دالة جلب البيانات
+    // نستخدم setTimeout لضمان أن الدالة initAdminPanel قد تم تحميلها
+    setTimeout(() => {
+        if (typeof initAdminPanel === "function") initAdminPanel();
+    }, 100);
+}
+
+// 2. زر تسجيل الدخول
 const btnAdminLogin = document.getElementById('btnAdminLogin');
 if (btnAdminLogin) {
     btnAdminLogin.addEventListener('click', () => {
-        if (document.getElementById('adminPass').value === "admin123") {
+        const passInput = document.getElementById('adminPass');
+        
+        // التحقق من كلمة المرور
+        if (passInput && passInput.value === "admin123") {
+            // ✅ حفظ حالة الدخول في المتصفح
+            localStorage.setItem('adminLoggedIn', 'true');
+            
             document.getElementById('adminLoginScreen').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
             initAdminPanel();
         } else {
-            alert("خطأ");
+            alert("كلمة المرور خاطئة");
         }
     });
-} // <--- هذا هو القوس الذي كان مفقوداً وتمت إضافته فقط
+}
+
+// 3. دالة تسجيل الخروج (مهمة جداً الآن)
+// يجب استدعاء هذه الدالة عند الضغط على زر الخروج في الـ HTML
+window.adminLogout = () => {
+    if (confirm("هل تريد تسجيل الخروج؟")) {
+        localStorage.removeItem('adminLoggedIn'); // مسح الحفظ
+        location.reload(); // إعادة تحميل الصفحة للعودة للقفل
+    }
+};
 
 // ============================================================
 // دالة لوحة الأدمن (مع البحث الشامل المحدث)
