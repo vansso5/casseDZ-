@@ -337,7 +337,7 @@ if (trackBtn) {
                                 ${orderData.status === 'sold' ? 'تم إغلاق الطلب ✅' : 'جاري البحث...'}
                             </p>
                             <p class="text-sm text-gray-500 animate-pulse">
-                                ${orderData.status === 'sold' ? 'تمت العملية بنجاح، شكراً لثقتكم.' : 'تم إرسال طلبك للورشات، انتظر العروض قريباً.'}
+                                ${orderData.status === 'sold' ? 'تمت العملية بنجاح، شكراً لثقتكم.' : 'تم إرسال طلبك للورشات..'}
                             </p>
                         </div>`;
                         return;
@@ -427,7 +427,7 @@ window.openCustomerOfferDetails = (offerDataEncoded) => {
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
             <span class="text-lg">كشف الرقم والاتصال</span>
         </button>
-        <p class="text-center text-[10px] text-gray-500 mt-3">بالضغط هنا سيتم تثبيت الطلب وحجزه لك</p>
+        <p class="text-center text-[10px] text-gray-500 mt-3">بالضغط هنا سيتم تثبيت الطلب وحجزه لك ٫ سيتم مسح جميع العروض الاخرى.</p>
     `;
     
     modal.classList.remove('hidden');
@@ -1072,7 +1072,7 @@ if (btnRegister) {
                 createdAt: serverTimestamp()
             });
 
-            alert("✅ تم إرسال طلبك بنجاح!\nسيتم تفعيل حسابك من قبل الإدارة بعد مراجعة بياناتك.");
+            alert("✅ تم إرسال طلبك بنجاح!\nسيتم تفعيل حسابك من قبل الإدارة بعد مراجعة بياناتك و الاتصال بك..");
 
             document.getElementById('regShopName').value = "";
             document.getElementById('regPhone').value = "";
