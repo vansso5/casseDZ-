@@ -32,13 +32,27 @@ const safeToggle = (id, action) => {
     }
 };
 
+// --- دالة عرض الصور المحسنة (مع زر إغلاق) ---
 function createLightbox() {
     if (document.getElementById('imgLightbox')) return;
     const box = document.createElement('div');
     box.id = 'imgLightbox';
-    box.className = 'fixed inset-0 z-[150] bg-black/95 hidden flex justify-center items-center cursor-zoom-out';
-    box.onclick = (e) => { if(e.target !== document.getElementById('lightboxImg')) box.classList.add('hidden'); };
-    box.innerHTML = `<img id="lightboxImg" src="" class="max-w-[95%] max-h-[95%] object-contain rounded-lg shadow-2xl transition-transform duration-300 scale-100">`;
+    // z-[200] لضمان ظهور الصورة فوق كل شيء
+    box.className = 'fixed inset-0 z-[200] bg-black/95 hidden flex justify-center items-center cursor-zoom-out backdrop-blur-sm';
+    
+    // إغلاق عند الضغط في الفراغ
+    box.onclick = (e) => {
+        if (e.target !== document.getElementById('lightboxImg')) box.classList.add('hidden');
+    };
+    
+    box.innerHTML = `
+        <div class="relative max-w-[95%] max-h-[95%]">
+            <!-- زر الإغلاق الأحمر -->
+            <button onclick="document.getElementById('imgLightbox').classList.add('hidden')" class="absolute -top-10 right-0 text-white bg-red-600 hover:bg-red-700 rounded-full p-2 transition shadow-lg z-50">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <img id="lightboxImg" src="" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-gray-700">
+        </div>`;
     document.body.appendChild(box);
 }
 createLightbox();
@@ -190,12 +204,12 @@ if (fileInput) {
 }
 
 window.resetCustomerForm = () => {
-    document.getElementById('carMake').value = "";
-    document.getElementById('carModel').value = "";
-    document.getElementById('carYear').value = "";
-    document.getElementById('partName').value = "";
+    if(document.getElementById('carMake')) document.getElementById('carMake').value = "";
+    if(document.getElementById('carModel')) document.getElementById('carModel').value = "";
+    if(document.getElementById('carYear')) document.getElementById('carYear').value = "";
+    if(document.getElementById('partName')) document.getElementById('partName').value = "";
     if(document.getElementById('partNotes')) document.getElementById('partNotes').value = "";
-    document.getElementById('phoneNumber').value = "";
+    if(document.getElementById('phoneNumber')) document.getElementById('phoneNumber').value = "";
     
     uploadedImageBase64 = null;
     if (fileInput) fileInput.value = "";
@@ -1108,21 +1122,20 @@ if (btnSendReset) {
 }
 
 // ============================================================
-// 4. منطق الأدمن (ADMIN)
+// 4. منطق الأدمن (ADMIN) - (الكود الكامل: دخول + لوحة تحكم)
 // ============================================================
 if (localStorage.getItem('adminLoggedIn') === 'true') {
     const loginScreen = document.getElementById('adminLoginScreen');
     const dashboard = document.getElementById('adminDashboard');
     
-    // إخفاء شاشة القفل وإظهار اللوحة
-    if (loginScreen) loginScreen.classList.add('hidden');
-    if (dashboard) dashboard.classList.remove('hidden');
-    
-    // تشغيل دالة جلب البيانات
-    // نستخدم setTimeout لضمان أن الدالة initAdminPanel قد تم تحميلها
-    setTimeout(() => {
-        if (typeof initAdminPanel === "function") initAdminPanel();
-    }, 100);
+    if (loginScreen && dashboard) {
+        loginScreen.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+        // تأخير بسيط لضمان تحميل الدالة
+        setTimeout(() => {
+            if (typeof initAdminPanel === "function") initAdminPanel();
+        }, 100);
+    }
 }
 
 // 2. زر تسجيل الدخول
@@ -1131,11 +1144,10 @@ if (btnAdminLogin) {
     btnAdminLogin.addEventListener('click', () => {
         const passInput = document.getElementById('adminPass');
         
-        // التحقق من كلمة المرور
         if (passInput && passInput.value === "admin123") {
-            // ✅ حفظ حالة الدخول في المتصفح
+            // حفظ حالة الدخول
             localStorage.setItem('adminLoggedIn', 'true');
-            
+
             document.getElementById('adminLoginScreen').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
             initAdminPanel();
@@ -1145,38 +1157,34 @@ if (btnAdminLogin) {
     });
 }
 
-// 3. دالة تسجيل الخروج (مهمة جداً الآن)
-// يجب استدعاء هذه الدالة عند الضغط على زر الخروج في الـ HTML
+// 3. دالة تسجيل الخروج
 window.adminLogout = () => {
-    if (confirm("هل تريد تسجيل الخروج؟")) {
-        localStorage.removeItem('adminLoggedIn'); // مسح الحفظ
-        location.reload(); // إعادة تحميل الصفحة للعودة للقفل
+    if(confirm("هل تريد تسجيل الخروج؟")) {
+        localStorage.removeItem('adminLoggedIn');
+        location.reload();
     }
 };
 
 // ============================================================
-// دالة لوحة الأدمن (مع البحث الشامل المحدث)
+// دالة لوحة الأدمن (initAdminPanel)
 // ============================================================
 function initAdminPanel() {
-    // مخزن البيانات المحلي (يحتوي دائماً على النسخة الكاملة من البيانات)
     let state = {
         pending: [],
         orders: [],
         sellers: [],
-        balanceRequests: [], // أضفنا طلبات الرصيد هنا
+        balanceRequests: [],
         requests: []
     };
 
     // ----------------------------------------------------
-    // 1. دالة البحث والفلترة المركزية (العقل المدبر)
+    // 1. دالة البحث والفلترة المركزية
     // ----------------------------------------------------
     const performGlobalSearch = () => {
         const searchEl = document.getElementById('globalAdminSearch');
-        // تحويل النص لحروف صغيرة ومسح الفراغات للبحث الدقيق
         const term = searchEl ? searchEl.value.toLowerCase().trim() : "";
 
-        // --- أ) فلترة الانتظار (Pending) ---
-        // نبحث في: اسم المتجر، الهاتف، الولاية، الإيميل
+        // أ) فلترة الانتظار
         const filteredPending = state.pending.filter(i => {
             const d = i.data;
             const fullText = `${d.shopName} ${d.phone} ${d.wilaya} ${d.baladiya} ${d.email}`.toLowerCase();
@@ -1184,8 +1192,7 @@ function initAdminPanel() {
         });
         renderPending(filteredPending);
 
-        // --- ب) فلترة الطلبات (Orders) ---
-        // نبحث في: اسم القطعة، السيارة، الهاتف، الكود السري، الموديل
+        // ب) فلترة الطلبات
         const filteredOrders = state.orders.filter(i => {
             const d = i.data;
             const fullText = `${d.partName} ${d.carMake} ${d.carModel || ''} ${d.phoneNumber} ${d.secretCode || ''} ${d.wilaya || ''}`.toLowerCase();
@@ -1193,8 +1200,7 @@ function initAdminPanel() {
         });
         renderOrders(filteredOrders);
 
-        // --- ج) فلترة التجار (Sellers) ---
-        // نبحث في: اسم المتجر، الهاتف، الولاية
+        // ج) فلترة التجار
         const filteredSellers = state.sellers.filter(i => {
             const d = i.data;
             const fullText = `${d.shopName} ${d.phone} ${d.wilaya} ${d.email}`.toLowerCase();
@@ -1202,8 +1208,7 @@ function initAdminPanel() {
         });
         renderSellers(filteredSellers);
 
-        // --- د) فلترة طلبات الرصيد (Balance) ---
-        // نبحث في: اسم المتجر، الهاتف، المبلغ
+        // د) فلترة طلبات الرصيد
         const filteredBalance = state.balanceRequests.filter(i => {
             const d = i.data;
             const fullText = `${d.shopName} ${d.phone} ${d.amount}`.toLowerCase();
@@ -1212,15 +1217,13 @@ function initAdminPanel() {
         renderBalance(filteredBalance);
     };
 
-    // ربط حدث الكتابة بدالة البحث
     const searchInput = document.getElementById('globalAdminSearch');
     if (searchInput) {
-        // "input" يعني التحديث فوراً عند كتابة أي حرف
         searchInput.addEventListener('input', performGlobalSearch);
     }
 
     // ----------------------------------------------------
-    // 2. دوال الرسم (Render Functions)
+    // 2. دوال الرسم (Render Functions) - تستخدم openLightbox الآن
     // ----------------------------------------------------
 
     const renderPending = (data) => {
@@ -1233,18 +1236,18 @@ function initAdminPanel() {
             const d = item.data;
             const img = d.shopImage || 'https://via.placeholder.com/100';
             list.innerHTML += `
-<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 flex flex-col sm:flex-row gap-4 items-start sm:items-center animate-slide-up hover:border-yellow-500/30 transition">
-  <img src="${img}" class="w-16 h-16 rounded-xl object-cover border border-gray-600 cursor-zoom-in" onclick="window.open(this.src)">
-  <div class="flex-1">
-    <h4 class="font-bold text-white text-base">${d.shopName}</h4>
-    <p class="text-xs text-gray-400 mb-0.5">📍 ${d.wilaya} - ${d.baladiya}</p>
-    <p class="text-xs text-blue-400 font-mono tracking-wider">📱 ${d.phone}</p>
-  </div>
-  <div class="flex gap-2 w-full sm:w-auto">
-    <button onclick="adminApproveSeller('${item.id}')" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold py-2 px-4 rounded-xl transition">قبول</button>
-    <button onclick="adminRejectSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold py-2 px-4 rounded-xl transition">رفض</button>
-  </div>
-</div>`;
+            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 flex flex-col sm:flex-row gap-4 items-start sm:items-center animate-slide-up hover:border-yellow-500/30 transition">
+              <img src="${img}" class="w-16 h-16 rounded-xl object-cover border border-gray-600 cursor-zoom-in hover:brightness-110 transition" onclick="openLightbox(this.src)">
+              <div class="flex-1">
+                <h4 class="font-bold text-white text-base">${d.shopName}</h4>
+                <p class="text-xs text-gray-400 mb-0.5">📍 ${d.wilaya} - ${d.baladiya}</p>
+                <p class="text-xs text-blue-400 font-mono tracking-wider">📱 ${d.phone}</p>
+              </div>
+              <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="adminApproveSeller('${item.id}')" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold py-2 px-4 rounded-xl transition">قبول</button>
+                <button onclick="adminRejectSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold py-2 px-4 rounded-xl transition">رفض</button>
+              </div>
+            </div>`;
         });
     };
 
@@ -1256,26 +1259,26 @@ function initAdminPanel() {
 
         data.forEach(item => {
             const r = item.data;
-            const imgHtml = r.receiptImage ? `<div class="mb-2"><img src="${r.receiptImage}" class="h-12 w-auto rounded border border-gray-600 cursor-zoom-in" onclick="window.open(this.src)"></div>` : ``;
+            const imgHtml = r.receiptImage ? `<div class="mb-2"><img src="${r.receiptImage}" class="h-16 w-auto rounded border border-gray-600 cursor-zoom-in hover:brightness-110 transition" onclick="openLightbox(this.src)"></div>` : ``;
 
             list.innerHTML += `
-<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 animate-slide-up hover:border-purple-500/30 transition">
-  <div class="flex justify-between items-start">
-    <div>
-      <p class="font-bold text-white text-sm mb-1">🏪 ${r.shopName}</p>
-      <p class="text-xs text-gray-400 font-mono mb-2">📱 ${r.phone}</p>
-      <div class="flex items-center gap-2">
-        <span class="text-purple-400 font-black text-xl">${r.amount} <span class="text-xs">DA</span></span>
-        <span class="text-[10px] text-gray-500 bg-gray-900 px-2 py-1 rounded">طلب شحن</span>
-      </div>
-    </div>
-    ${imgHtml}
-  </div>
-  <div class="flex gap-2 mt-4 pt-3 border-t border-gray-700">
-    <button onclick="adminApproveTopUp('${item.id}', '${r.sellerId}', ${r.amount})" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 rounded-xl transition">✅ تأكيد الشحن</button>
-    <button onclick="adminRejectTopUp('${item.id}')" class="px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold py-2.5 rounded-xl transition">رفض</button>
-  </div>
-</div>`;
+            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 animate-slide-up hover:border-purple-500/30 transition">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="font-bold text-white text-sm mb-1">🏪 ${r.shopName}</p>
+                  <p class="text-xs text-gray-400 font-mono mb-2">📱 ${r.phone}</p>
+                  <div class="flex items-center gap-2">
+                    <span class="text-purple-400 font-black text-xl">${r.amount} <span class="text-xs">DA</span></span>
+                    <span class="text-[10px] text-gray-500 bg-gray-900 px-2 py-1 rounded">طلب شحن</span>
+                  </div>
+                </div>
+                ${imgHtml}
+              </div>
+              <div class="flex gap-2 mt-4 pt-3 border-t border-gray-700">
+                <button onclick="adminApproveTopUp('${item.id}', '${r.sellerId}', ${r.amount})" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 rounded-xl transition">✅ تأكيد الشحن</button>
+                <button onclick="adminRejectTopUp('${item.id}')" class="px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold py-2.5 rounded-xl transition">رفض</button>
+              </div>
+            </div>`;
         });
     };
 
@@ -1287,22 +1290,27 @@ function initAdminPanel() {
 
         data.forEach(item => {
             const d = item.data;
+            const imgHtml = d.imageUrl ? `<img src="${d.imageUrl}" class="w-10 h-10 rounded-lg object-cover border border-gray-600 cursor-zoom-in ml-2 hover:brightness-110 transition" onclick="openLightbox(this.src)">` : ``;
+
             list.innerHTML += `
-<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 flex justify-between items-center hover:border-green-500/30 transition">
-  <div>
-    <p class="font-bold text-sm text-white mb-1">${d.partName}</p>
-    <div class="flex flex-wrap gap-2">
-      <span class="text-[10px] text-gray-300 bg-gray-700 px-2 py-0.5 rounded border border-gray-600">${d.carMake} ${d.carModel || ''}</span>
-      <span class="text-[10px] text-orange-400 font-mono bg-orange-400/10 px-2 py-0.5 rounded">${d.phoneNumber}</span>
-      <span class="text-[10px] text-gray-500 bg-black/20 px-2 py-0.5 rounded font-mono tracking-widest">Code: ${d.secretCode || '---'}</span>
-    </div>
-  </div>
-  <button onclick="adminDeleteDoc('orders','${item.id}')" class="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-    </svg>
-  </button>
-</div>`;
+            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 flex justify-between items-center hover:border-green-500/30 transition">
+              <div class="flex items-center w-full">
+                ${imgHtml}
+                <div class="flex-1 ml-2">
+                  <p class="font-bold text-sm text-white mb-1">${d.partName}</p>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="text-[10px] text-gray-300 bg-gray-700 px-2 py-0.5 rounded border border-gray-600">${d.carMake} ${d.carModel || ''}</span>
+                    <span class="text-[10px] text-orange-400 font-mono bg-orange-400/10 px-2 py-0.5 rounded">${d.phoneNumber}</span>
+                    <span class="text-[10px] text-gray-500 bg-black/20 px-2 py-0.5 rounded font-mono tracking-widest">Code: ${d.secretCode || '---'}</span>
+                  </div>
+                </div>
+              </div>
+              <button onclick="adminDeleteDoc('orders','${item.id}')" class="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition ml-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>`;
         });
     };
 
@@ -1315,28 +1323,28 @@ function initAdminPanel() {
         data.forEach(item => {
             const d = item.data;
             list.innerHTML += `
-<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 hover:border-blue-500/30 transition">
-  <div class="flex justify-between items-start mb-2">
-    <div>
-      <p class="font-bold text-white text-base">${d.shopName}</p>
-      <p class="text-xs text-gray-400">📍 ${d.wilaya || '--'}</p>
-    </div>
-    <span class="${d.isBlocked ? 'text-red-400 bg-red-400/10 border-red-400/20' : 'text-green-400 bg-green-400/10 border-green-400/20'} text-[10px] px-2 py-1 rounded border font-bold">
-      ${d.isBlocked ? 'محظور' : 'نشط'}
-    </span>
-  </div>
-  
-  <div class="flex items-center justify-between bg-gray-900/50 p-2 rounded-xl mb-3">
-    <span class="text-xs text-gray-400 font-mono">${d.phone}</span>
-    <span class="text-yellow-500 font-bold text-sm">${d.balance} DA</span>
-  </div>
-  
-  <div class="flex gap-2">
-    <button onclick="adminToggleBlock('${item.id}', ${d.isBlocked})" class="flex-1 bg-gray-700 hover:bg-gray-600 text-[10px] py-2 rounded-lg text-white transition">${d.isBlocked ? 'فك الحظر' : 'حظر'}</button>
-    <button onclick="adminAddBalance('${item.id}')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-[10px] py-2 rounded-lg text-white font-bold transition">+ رصيد يدوي</button>
-    <button onclick="adminDeleteSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] py-2 rounded-lg transition">حذف</button>
-  </div>
-</div>`;
+            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 hover:border-blue-500/30 transition">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <p class="font-bold text-white text-base">${d.shopName}</p>
+                  <p class="text-xs text-gray-400">📍 ${d.wilaya || '--'}</p>
+                </div>
+                <span class="${d.isBlocked ? 'text-red-400 bg-red-400/10 border-red-400/20' : 'text-green-400 bg-green-400/10 border-green-400/20'} text-[10px] px-2 py-1 rounded border font-bold">
+                  ${d.isBlocked ? 'محظور' : 'نشط'}
+                </span>
+              </div>
+              
+              <div class="flex items-center justify-between bg-gray-900/50 p-2 rounded-xl mb-3">
+                <span class="text-xs text-gray-400 font-mono">${d.phone}</span>
+                <span class="text-yellow-500 font-bold text-sm">${d.balance} DA</span>
+              </div>
+              
+              <div class="flex gap-2">
+                <button onclick="adminToggleBlock('${item.id}', ${d.isBlocked})" class="flex-1 bg-gray-700 hover:bg-gray-600 text-[10px] py-2 rounded-lg text-white transition">${d.isBlocked ? 'فك الحظر' : 'حظر'}</button>
+                <button onclick="adminAddBalance('${item.id}')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-[10px] py-2 rounded-lg text-white font-bold transition">+ رصيد يدوي</button>
+                <button onclick="adminDeleteSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] py-2 rounded-lg transition">حذف</button>
+              </div>
+            </div>`;
         });
     };
 
@@ -1348,7 +1356,7 @@ function initAdminPanel() {
     onSnapshot(query(collection(db, "sellers"), where("isVerified", "==", false)), (snap) => {
         const el = document.getElementById('statPending'); if (el) el.innerText = snap.size;
         state.pending = snap.docs.map(d => ({ id: d.id, data: d.data() }));
-        performGlobalSearch(); // تحديث العرض فوراً عبر الفلتر
+        performGlobalSearch();
     });
 
     // ب) جلب الطلبات (Active Only)
@@ -1387,20 +1395,21 @@ function initAdminPanel() {
     async function systemAutoCleanup() {
         const THIRTY_DAYS_AGO = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
         try {
-            const batch = writeBatch(db);
-            let count = 0;
             // حذف الطلبات القديمة
-            const oldOrders = await getDocs(query(collection(db, "orders"), where("createdAt", "<", THIRTY_DAYS_AGO))); oldOrders.forEach(d => { batch.delete(d.ref); count++; });
-            // حذف المبيعات القديمة
-            const oldSales = await getDocs(query(collection(db, "sales"), where("soldAt", "<", THIRTY_DAYS_AGO))); oldSales.forEach(d => { batch.delete(d.ref); count++; });
+            const oldOrders = await getDocs(query(collection(db, "orders"), where("createdAt", "<", THIRTY_DAYS_AGO)));
+            oldOrders.forEach(async (d) => { await deleteDoc(d.ref); });
 
-            if (count > 0) { await batch.commit(); console.log("Cleaned:", count); }
-        } catch (e) { console.log("Cleanup check done."); }
+            // حذف المبيعات القديمة
+            const oldSales = await getDocs(query(collection(db, "sales"), where("soldAt", "<", THIRTY_DAYS_AGO)));
+            oldSales.forEach(async (d) => { await deleteDoc(d.ref); });
+
+            if (!oldOrders.empty || !oldSales.empty) console.log("System cleanup performed.");
+        } catch (e) { console.error("Cleanup error:", e); }
     }
     systemAutoCleanup();
 }
 
-// --- دوال التحكم للأدمن (كما هي) ---
+// --- دوال التحكم للأدمن ---
 window.adminDeleteDoc = async (c, i) => { if (confirm("حذف؟")) await deleteDoc(doc(db, c, i)); };
 window.adminToggleBlock = async (id, status) => { await updateDoc(doc(db, "sellers", id), { isBlocked: !status }); };
 window.adminAddBalance = async (id) => { const a = prompt("المبلغ:"); if (a) await updateDoc(doc(db, "sellers", id), { balance: increment(parseInt(a)) }); };
