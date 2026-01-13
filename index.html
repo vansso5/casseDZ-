@@ -94,18 +94,22 @@
                     </div>
                 </div>
             </a>
-            <!-- أيقونة المساعدة (صغيرة ومرفوعة للأعلى) -->
+            <!-- أيقونة المساعدة -->
             <button onclick="showHelp('search')" class="absolute top-3 left-4 z-20 w-6 h-6 rounded-full bg-gray-800/80 hover:bg-orange-500 text-gray-400 hover:text-white border border-white/10 flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm group-help">
                 <span class="text-[10px] font-bold">?</span>
             </button>
         </div>
 
-        <!-- 3. بطاقة "تتبع الطلبات" (أزرق) -->
+        <!-- 3. بطاقة "تتبع الطلبات" (أزرق) - تم التعديل هنا -->
         <div class="relative w-full mb-5 group">
             <a href="track.html" class="block w-full transform active:scale-[0.98] transition-all duration-300">
-                <div class="relative bg-gray-800/30 border border-white/5 rounded-[2rem] p-7 flex items-center justify-between shadow-lg hover:bg-gray-800/50 transition">
+                <!-- تمت إضافة طبقة التوهج الأزرق هنا -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-blue-400 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                
+                <!-- تم توحيد الخلفية إلى bg-gray-900 مثل البقية -->
+                <div class="relative bg-gray-900 border border-white/5 rounded-[2rem] p-7 flex items-center justify-between shadow-2xl">
                     <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-400/10">
+                        <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-400/10 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                             </svg>
@@ -117,7 +121,7 @@
                     </div>
                 </div>
             </a>
-            <!-- أيقونة المساعدة (صغيرة ومرفوعة للأعلى) -->
+            <!-- أيقونة المساعدة -->
             <button onclick="showHelp('track')" class="absolute top-3 left-4 z-20 w-6 h-6 rounded-full bg-gray-800/80 hover:bg-blue-500 text-gray-400 hover:text-white border border-white/10 flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm">
                 <span class="text-[10px] font-bold">?</span>
             </button>
@@ -148,7 +152,7 @@
                     </div>
                 </div>
             </a>
-            <!-- أيقونة المساعدة (صغيرة ومرفوعة للأعلى) -->
+            <!-- أيقونة المساعدة -->
             <button onclick="showHelp('seller')" class="absolute top-3 left-4 z-20 w-6 h-6 rounded-full bg-gray-800/80 hover:bg-emerald-500 text-gray-400 hover:text-white border border-white/10 flex items-center justify-center transition-all duration-300 shadow-lg backdrop-blur-sm">
                 <span class="text-[10px] font-bold">?</span>
             </button>
