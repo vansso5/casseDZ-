@@ -9,29 +9,29 @@
     <style> 
         body { font-family: 'Tajawal', sans-serif; background-color: #111827; } 
         
-        /* نفس ستايل الزجاج المستخدم في صفحة البائع */
         .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         
-        /* أنيميشن بسيط للظهور */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+        /* تنسيق المودال */
+        .help-modal { opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .help-modal.active { opacity: 1; visibility: visible; }
+        .help-content { transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .help-modal.active .help-content { transform: scale(1); }
     </style>
 </head>
-<body class="text-white min-h-screen flex flex-col items-center">
+<body class="text-white min-h-screen flex flex-col items-center relative">
 
-    <!-- 1. الهيدر (رأس الصفحة) - مطابق لصفحة البائع -->
+    <!-- 1. الهيدر -->
     <header class="glass fixed top-0 w-full z-50">
         <div class="max-w-lg mx-auto px-4 py-3 flex justify-between items-center">
-            <!-- زر العودة للرئيسية -->
             <a href="index.html" class="flex items-center gap-2 group">
                 <div class="bg-gray-800 p-2 rounded-xl group-hover:bg-gray-700 transition border border-gray-700">
                     <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m7 7l-7-7 7-7"></path></svg>
                 </div>
             </a>
-
             <h1 class="text-lg font-bold tracking-tight">تتبع <span class="text-orange-500">الطلب</span></h1>
-
-            <!-- زر فارغ للموازنة الجمالية -->
             <div class="w-10"></div>
         </div>
     </header>
@@ -39,16 +39,20 @@
     <!-- محتوى الصفحة الرئيسي -->
     <main class="w-full max-w-sm px-4 mt-24 flex-1 flex flex-col">
 
-        <!-- العنوان الرئيسي -->
         <div class="text-center mb-8 animate-fade-in">
             <h1 class="text-3xl font-bold text-white">حالة <span class="text-orange-500">الطلب</span></h1>
             <p class="text-gray-400 text-sm mt-2">أدخل بياناتك لمشاهدة العروض</p>
         </div>
         
-        <!-- 2. قسم تسجيل الدخول للتتبع (مطابق لتصميم فورم البائع) -->
-        <div id="loginSection" class="bg-gray-800 p-6 rounded-2xl w-full border border-gray-700 shadow-2xl relative mb-10 animate-fade-in">
+        <!-- 2. قسم تسجيل الدخول للتتبع -->
+        <div id="loginSection" class="bg-gray-800 p-6 rounded-2xl w-full border border-gray-700 shadow-2xl relative mb-10 animate-fade-in group">
             
-            <div class="space-y-4">
+            <!-- أيقونة الشرح (جديد) -->
+            <button onclick="toggleHelpModal()" class="absolute top-4 left-4 w-6 h-6 rounded-full border border-gray-600 text-gray-400 hover:text-orange-500 hover:border-orange-500 flex items-center justify-center transition-colors z-10" title="كيف يعمل التتبع؟">
+                <span class="text-xs font-bold">?</span>
+            </button>
+
+            <div class="space-y-4 pt-2">
                 <div>
                     <label class="text-xs text-gray-400 mb-1 block">رقم الهاتف</label>
                     <input id="trackPhone" type="tel" placeholder="0XXXXXXXXX" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left font-mono placeholder-gray-600 transition" dir="ltr">
@@ -66,7 +70,7 @@
             </div>
         </div>
 
-        <!-- 3. شاشة لوحة التحكم (Dashboard) - تظهر بعد البحث -->
+        <!-- 3. شاشة لوحة التحكم (Dashboard) -->
         <div id="dashboardSection" class="hidden space-y-6 w-full animate-fade-in pb-10">
             
             <!-- كارت اسم القطعة -->
@@ -85,7 +89,7 @@
 
             <!-- قائمة العروض -->
             <div id="offersList" class="space-y-4">
-                <!-- الحالة الافتراضية -->
+                <!-- سيتم ملء العروض هنا عبر JS مع ترتيبها حسب النجوم -->
                 <div class="bg-gray-800/50 rounded-2xl p-10 text-center border border-dashed border-gray-700">
                     <p class="text-lg font-bold mb-2 text-gray-300">جاري البحث...</p>
                     <p class="text-sm text-gray-500">سيتم عرض العروض فور وصولها من التجار</p>
@@ -95,6 +99,35 @@
 
     </main>
 
+    <!-- نافذة الشرح المنبثقة (جديد) -->
+    <div id="trackHelpModal" class="help-modal fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="toggleHelpModal()">
+        <div class="help-content bg-gray-800 w-full max-w-sm rounded-[2rem] border border-gray-700 shadow-2xl p-6 relative" onclick="event.stopPropagation()">
+            
+            <div class="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            
+            <h3 class="text-xl font-bold text-center text-white mb-3">كيف أشاهد العروض؟</h3>
+            
+            <div class="text-sm text-gray-300 leading-relaxed text-right space-y-3">
+                <p>1. أدخل <span class="text-orange-400 font-bold">رقم هاتفك</span> و<span class="text-orange-400 font-bold">الرمز السري</span> الذي ظهر لك عند إرسال الطلب.</p>
+                <div class="bg-gray-900/50 p-3 rounded-xl border border-gray-700 text-xs text-gray-400">
+                    💡 <span class="font-bold text-gray-300">نصيحة:</span> يرجى الانتظار بعض الوقت بعد إرسال الطلب للسماح للتجار برؤيته وإنشاء عروض أسعار خاصة ومنافسة لك.
+                </div>
+            </div>
+            
+            <button onclick="toggleHelpModal()" class="mt-6 w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition text-sm">
+                حسناً، فهمت
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function toggleHelpModal() {
+            const modal = document.getElementById('trackHelpModal');
+            modal.classList.toggle('active');
+        }
+    </script>
     <script type="module" src="./logic.js"></script>
 </body>
 </html>
