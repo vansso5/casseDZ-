@@ -128,7 +128,7 @@
                 </div>
             </div>
 
-            <!-- ب) تغيير كلمة المرور (3 خانات كما طلبت تماماً) -->
+            <!-- ب) تغيير كلمة المرور -->
             <div class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <!-- الزر الرئيسي لفتح/إغلاق -->
                 <button onclick="togglePasswordFields()" class="w-full flex justify-between items-center group">
@@ -151,7 +151,7 @@
 
             <button onclick="logoutSeller()" class="w-full py-4 rounded-2xl font-black text-[10px] text-red-400 border border-red-50 hover:bg-red-50 transition-all uppercase tracking-widest">خروج من الحساب</button>
 
-            <!-- السياسات -->
+            <!-- السياسات المحدثة -->
             <div class="pt-6 text-center">
                 <button onclick="toggleMerchantPolicies()" class="text-gray-400 hover:text-orange-500 text-[10px] font-black uppercase tracking-[0.2em] transition-all inline-flex items-center gap-4 group">
                     <span class="w-6 h-[1px] bg-gray-200 group-hover:bg-orange-500/50 transition-all"></span>
@@ -161,10 +161,31 @@
 
                 <div id="merchantPolicyBox" class="policy-content-merchant text-right">
                     <div class="bg-white border border-gray-100 p-6 rounded-[2.5rem] shadow-sm space-y-6">
+                        
+                        <!-- 1. سياسة العمولة (برتقالي) -->
                         <div class="border-r-2 border-orange-500 pr-4">
-                            <h4 class="text-[11px] font-black text-gray-900 uppercase mb-1">العمولة والرصيد</h4>
-                            <p class="text-[10px] text-gray-500 leading-relaxed">يتم خصم مبلغ 50 دج عند طلب الزبون لظهور رقمك.</p>
+                            <h4 class="text-[11px] font-black text-gray-900 uppercase mb-1">عمولة رمزية مقابل فرصة حقيقية</h4>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">
+                                عرض سلعك مجاني 100%. نحن نخصم مبلغاً رمزياً (50 دج) <span class="font-bold text-orange-600">فقط عندما يختارك الزبون ويطلب رقم هاتفك</span>. هذا المبلغ يُخصم مقابل فرصة الاتصال بغض النظر عن إتمام الصفقة النهائية.
+                            </p>
                         </div>
+
+                        <!-- 2. سياسة إخلاء المسؤولية (رمادي) -->
+                        <div class="border-r-2 border-gray-600 pr-4">
+                            <h4 class="text-[11px] font-black text-gray-900 uppercase mb-1">أنت سيد تجارتك</h4>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">
+                                نحن وسيط تقني يجمعك بالزبائن. عملية البيع، طريقة التوصيل، استلام الأموال، والضمان هي مسؤوليتك الكاملة واتفاق مباشر بينك وبين الزبون.
+                            </p>
+                        </div>
+
+                        <!-- 3. سياسة التقييم (أخضر) -->
+                        <div class="border-r-2 border-green-500 pr-4">
+                            <h4 class="text-[11px] font-black text-gray-900 uppercase mb-1">سمعتك تزيد مبيعاتك</h4>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">
+                                بعد كل اتصال، يُتاح للزبون تقييمك. الحفاظ على الصدق في السعر وحالة القطعة يمنحك 5 نجوم، مما يجعلك تظهر في مقدمة التجار وتبيع أكثر.
+                            </p>
+                        </div>
+
                     </div>
                 </div>
             </div>
