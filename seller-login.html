@@ -9,13 +9,19 @@
     <style> 
         body { font-family: 'Tajawal', sans-serif; background-color: #111827; } 
         
-        /* إضافة ستايل الزجاج للهيدر (تم نقله من الكود الأول) */
+        /* إضافة ستايل الزجاج للهيدر */
         .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        
+        /* تحسين مظهر القائمة المنسدلة */
+        select option {
+            background-color: #111827;
+            color: white;
+        }
     </style>
 </head>
 <body class="text-white min-h-screen flex flex-col justify-center items-center p-4">
 
-    <!-- 1. الهيدر (رأس الصفحة) - تمت إضافته هنا -->
+    <!-- 1. الهيدر (رأس الصفحة) -->
     <header class="glass fixed top-0 w-full z-50">
         <div class="max-w-lg mx-auto px-4 py-3 flex justify-between items-center">
             <!-- زر العودة للرئيسية -->
@@ -25,7 +31,7 @@
                 </div>
             </a>
 
-            <!-- العنوان (تم تغيير النص ليناسب صفحة البائع) -->
+            <!-- العنوان -->
             <h1 class="text-lg font-bold tracking-tight">تسجيل <span class="text-orange-500">الدخول</span></h1>
 
             <!-- زر فارغ للموازنة الجمالية -->
@@ -34,7 +40,7 @@
     </header>
 
     <!-- الشعار -->
-    <div class="mb-8 text-center mt-16"> <!-- تمت زيادة الـ margin-top لكي لا يغطيه الهيدر -->
+    <div class="mb-8 text-center mt-16">
         <h1 class="text-3xl font-bold text-white">La Casse <span class="text-orange-500">Pro</span></h1>
         <p class="text-gray-400 text-sm mt-1">بوابة أصحاب الورشات</p>
     </div>
@@ -78,16 +84,79 @@
                 <label class="text-xs text-gray-400">اسم الورشة او المحل</label>
                 <input type="text" id="regShopName" placeholder="" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
             </div>
+            
             <div class="flex gap-2">
+                <!-- تم تعديل خانة الولاية لتصبح قائمة منسدلة -->
                 <div class="flex-1">
                     <label class="text-xs text-gray-400">الولاية</label>
-                    <input type="text" id="regWilaya" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-center">
+                    <select id="regWilaya" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 cursor-pointer">
+                        <option value="" disabled selected>اختر...</option>
+                        <option value="1">01 - Adrar</option>
+                        <option value="2">02 - Chlef</option>
+                        <option value="3">03 - Laghouat</option>
+                        <option value="4">04 - Oum El Bouaghi</option>
+                        <option value="5">05 - Batna</option>
+                        <option value="6">06 - Béjaïa</option>
+                        <option value="7">07 - Biskra</option>
+                        <option value="8">08 - Béchar</option>
+                        <option value="9">09 - Blida</option>
+                        <option value="10">10 - Bouira</option>
+                        <option value="11">11 - Tamanrasset</option>
+                        <option value="12">12 - Tébessa</option>
+                        <option value="13">13 - Tlemcen</option>
+                        <option value="14">14 - Tiaret</option>
+                        <option value="15">15 - Tizi Ouzou</option>
+                        <option value="16">16 - Alger</option>
+                        <option value="17">17 - Djelfa</option>
+                        <option value="18">18 - Jijel</option>
+                        <option value="19">19 - Sétif</option>
+                        <option value="20">20 - Saïda</option>
+                        <option value="21">21 - Skikda</option>
+                        <option value="22">22 - Sidi Bel Abbès</option>
+                        <option value="23">23 - Annaba</option>
+                        <option value="24">24 - Guelma</option>
+                        <option value="25">25 - Constantine</option>
+                        <option value="26">26 - Médéa</option>
+                        <option value="27">27 - Mostaganem</option>
+                        <option value="28">28 - M'Sila</option>
+                        <option value="29">29 - Mascara</option>
+                        <option value="30">30 - Ouargla</option>
+                        <option value="31">31 - Oran</option>
+                        <option value="32">32 - El Bayadh</option>
+                        <option value="33">33 - Illizi</option>
+                        <option value="34">34 - Bordj Bou Arreridj</option>
+                        <option value="35">35 - Boumerdès</option>
+                        <option value="36">36 - El Tarf</option>
+                        <option value="37">37 - Tindouf</option>
+                        <option value="38">38 - Tissemsilt</option>
+                        <option value="39">39 - El Oued</option>
+                        <option value="40">40 - Khenchela</option>
+                        <option value="41">41 - Souk Ahras</option>
+                        <option value="42">42 - Tipaza</option>
+                        <option value="43">43 - Mila</option>
+                        <option value="44">44 - Aïn Defla</option>
+                        <option value="45">45 - Naâma</option>
+                        <option value="46">46 - Aïn Témouchent</option>
+                        <option value="47">47 - Ghardaïa</option>
+                        <option value="48">48 - Relizane</option>
+                        <option value="49">49 - Timimoun</option>
+                        <option value="50">50 - Bordj Badji Mokhtar</option>
+                        <option value="51">51 - Ouled Djellal</option>
+                        <option value="52">52 - Béni Abbès</option>
+                        <option value="53">53 - In Salah</option>
+                        <option value="54">54 - In Guezzam</option>
+                        <option value="55">55 - Touggourt</option>
+                        <option value="56">56 - Djanet</option>
+                        <option value="57">57 - El M'Ghair</option>
+                        <option value="58">58 - El Meniaa</option>
+                    </select>
                 </div>
                 <div class="flex-1">
                     <label class="text-xs text-gray-400">البلدية</label>
                     <input type="text" id="regBaladiya" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-center">
                 </div>
             </div>
+
             <div>
                 <label class="text-xs text-gray-400">البريد الإلكتروني <span class="text-orange-500">*</span></label>
                 <input type="email" id="regEmail" placeholder="email@gmail.com" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 text-left" dir="ltr">
