@@ -32,13 +32,12 @@ const safeToggle = (id, action) => {
     }
 };
 
-// --- دالة عرض الصور المحسنة (مع زر إغلاق) ---
+// --- نظام Lightbox الشامل ---
 function createLightbox() {
     if (document.getElementById('imgLightbox')) return;
     const box = document.createElement('div');
     box.id = 'imgLightbox';
-    // z-[200] لضمان ظهور الصورة فوق كل شيء
-    box.className = 'fixed inset-0 z-[200] bg-black/95 hidden flex justify-center items-center cursor-zoom-out backdrop-blur-sm';
+    box.className = 'fixed inset-0 z-[9999] bg-black/95 hidden flex justify-center items-center cursor-zoom-out backdrop-blur-sm animate-fade-in';
     
     // إغلاق عند الضغط في الفراغ
     box.onclick = (e) => {
@@ -47,8 +46,7 @@ function createLightbox() {
     
     box.innerHTML = `
         <div class="relative max-w-[95%] max-h-[95%]">
-            <!-- زر الإغلاق الأحمر -->
-            <button onclick="document.getElementById('imgLightbox').classList.add('hidden')" class="absolute -top-10 right-0 text-white bg-red-600 hover:bg-red-700 rounded-full p-2 transition shadow-lg z-50">
+            <button onclick="document.getElementById('imgLightbox').classList.add('hidden')" class="absolute -top-12 right-0 text-white bg-red-600 hover:bg-red-700 rounded-full p-2 transition shadow-lg z-50">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <img id="lightboxImg" src="" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-gray-700">
@@ -58,6 +56,7 @@ function createLightbox() {
 createLightbox();
 
 window.openLightbox = (src) => {
+    if (!src) return;
     const box = document.getElementById('imgLightbox');
     const img = document.getElementById('lightboxImg');
     img.src = src;
@@ -90,6 +89,17 @@ const compressImage = (file) => {
     });
 };
 
+// دالة مساعدة لحساب المعدل
+async function getSellerAverageRating(sellerId) {
+    try {
+        const q = query(collection(db, "ratings"), where("sellerId", "==", sellerId));
+        const snap = await getDocs(q);
+        let total = 0;
+        snap.forEach(d => total += d.data().stars);
+        return snap.size > 0 ? (total / snap.size) : 0;
+    } catch { return 0; }
+}
+
 async function updateRatingUI(sellerId, elementId) {
     try {
         const q = query(collection(db, "ratings"), where("sellerId", "==", sellerId));
@@ -115,6 +125,7 @@ async function updateRatingUI(sellerId, elementId) {
     } catch(e) { console.error("Rating Error", e); }
 }
 
+// --- Smart Preview Logic (المعاينة الفورية العامة) ---
 window.previewThumb = (input) => {
     const num = input.id.slice(-1); 
     const thumbId = 'thumb' + num;
@@ -125,7 +136,11 @@ window.previewThumb = (input) => {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            if(imgEl) { imgEl.src = e.target.result; imgEl.classList.remove('hidden'); }
+            if(imgEl) { 
+                imgEl.src = e.target.result; 
+                imgEl.classList.remove('hidden'); 
+                imgEl.onclick = () => window.openLightbox(e.target.result);
+            }
             if(plusEl) { plusEl.classList.add('hidden'); }
         }
         reader.readAsDataURL(input.files[0]);
@@ -187,6 +202,7 @@ const fileInput = document.getElementById('partImage');
 const imagePreview = document.getElementById('imagePreview');
 const uploadPlaceholder = document.getElementById('uploadPlaceholder');
 
+// Smart Preview for Customer Order
 if (fileInput) {
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -197,6 +213,9 @@ if (fileInput) {
                     imagePreview.src = uploadedImageBase64;
                     imagePreview.classList.remove('hidden'); 
                     uploadPlaceholder.classList.add('hidden'); 
+                    
+                    imagePreview.onclick = () => window.openLightbox(uploadedImageBase64);
+                    imagePreview.style.cursor = "zoom-in";
                 }
             } catch(err) { console.error(err); alert("حدث خطأ أثناء معالجة الصورة"); }
         }
@@ -290,7 +309,7 @@ if (submitBtn) {
     });
 }
 
-// --- تتبع الطلب ---
+// --- تتبع الطلب (مع ميزة الترتيب حسب التقييم) ---
 const trackBtn = document.getElementById('trackBtn');
 if (trackBtn) {
     trackBtn.addEventListener('click', async () => {
@@ -304,7 +323,7 @@ if (trackBtn) {
         try {
             const q = query(collection(db, "orders"), where("phoneNumber", "==", phone), where("secretCode", "==", code));
             
-            onSnapshot(q, (snap) => {
+            onSnapshot(q, async (snap) => {
                 if(snap.empty) { 
                     alert("لا يوجد طلب بهذا الرقم والكود.");
                     trackBtn.innerText = "إظهار العروض";
@@ -325,7 +344,8 @@ if (trackBtn) {
                 const titleEl = document.getElementById('orderTitle');
                 if(titleEl) titleEl.innerText = `${orderData.partName} (${orderData.carMake})`;
 
-                onSnapshot(query(collection(db, "offers"), where("orderId", "==", orderId)), (offerSnap) => {
+                // الاستماع للعروض
+                onSnapshot(query(collection(db, "offers"), where("orderId", "==", orderId)), async (offerSnap) => {
                     const list = document.getElementById('offersList');
                     if(!list) return;
                     list.innerHTML = "";
@@ -342,10 +362,11 @@ if (trackBtn) {
                         </div>`;
                         return;
                     }
-                    
+
                     const wilayas = ["Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", "Béchar", "Blida", "Bouira", "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Alger", "Djelfa", "Jijel", "Sétif", "Saïda", "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma", "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", "Ouargla", "Oran", "El Bayadh", "Illizi", "Bordj Bou Arreridj", "Boumerdès", "El Tarf", "Tindouf", "Tissemsilt", "El Oued", "Khenchela", "Souk Ahras", "Tipaza", "Mila", "Aïn Defla", "Naâma", "Aïn Témouchent", "Ghardaïa", "Relizane", "Timimoun", "Bordj Badji Mokhtar", "Ouled Djellal", "Béni Abbès", "In Salah", "In Guezzam", "Touggourt", "Djanet", "El M'Ghair", "El Meniaa"];
 
-                    offerSnap.forEach(async (d) => {
+                    // استخدام Promise.all لجلب التقييمات وبيانات التجار لكل عرض
+                    const processedOffers = await Promise.all(offerSnap.docs.map(async (d) => {
                         const o = d.data();
                         const offerId = d.id;
                         
@@ -360,12 +381,32 @@ if (trackBtn) {
                             }
                         }
 
-                        const offerData = { ...o, id: offerId, displayWilaya: sellerWilayaName, partName: orderData.partName };
-                        const offerDataStr = encodeURIComponent(JSON.stringify(offerData));
+                        const avgRating = await getSellerAverageRating(o.sellerId);
 
-                        list.innerHTML += `
-                        <div class="bg-gray-800 p-5 rounded-[2rem] border border-gray-700 mb-4 shadow-lg hover:border-gray-600 transition-all cursor-pointer group" onclick="openCustomerOfferDetails('${offerDataStr}')">
-                            <div class="flex justify-between items-start mb-3">
+                        return {
+                            ...o,
+                            id: offerId,
+                            displayWilaya: sellerWilayaName,
+                            partName: orderData.partName,
+                            avgRating: avgRating 
+                        };
+                    }));
+
+                    // الترتيب حسب التقييم
+                    processedOffers.sort((a, b) => b.avgRating - a.avgRating);
+
+// 3. عرض العروض (تم تعديل مكان النجوم ليكون بجانب الولاية)
+processedOffers.forEach((o) => {
+    const offerDataStr = encodeURIComponent(JSON.stringify(o));
+    // تنسيق النجوم: إذا كان هناك تقييم تظهر النجمة، وإلا تظهر كلمة "جديد"
+    const ratingBadge = o.avgRating > 0 ? `★ ${o.avgRating.toFixed(1)}` : `🆕`;
+    
+    list.innerHTML += `
+                        <div class="bg-gray-800 p-5 rounded-[2rem] border border-gray-700 mb-4 shadow-lg hover:border-gray-600 transition-all cursor-pointer group relative overflow-hidden" onclick="openCustomerOfferDetails('${offerDataStr}')">
+                            
+                            <!-- تم حذف النجوم العائمة من هنا -->
+
+                            <div class="flex justify-between items-start mb-3 mt-2">
                                 <div class="flex flex-col">
                                     <span class="text-[10px] text-gray-400">السعر</span>
                                     <span class="text-2xl font-black text-white">${o.price} <span class="text-sm text-orange-500">DA</span></span>
@@ -374,21 +415,29 @@ if (trackBtn) {
                                     ${o.condition || 'مستعمل'}
                                 </span>
                             </div>
+                            
                             <div class="flex items-center gap-3 mb-4">
                                 <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-400">موقع القطعة</p>
-                                    <p class="text-sm font-bold text-white">${sellerWilayaName}</p>
+                                    <!-- هنا التعديل: وضعنا التقييم بجانب الولاية -->
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-sm font-bold text-white">${o.displayWilaya}</p>
+                                        <span class="text-[10px] text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 font-bold flex items-center gap-1">
+                                            ${ratingBadge}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
+
                             <button class="w-full bg-gray-700 group-hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
                                 <span>عرض الصور والتفاصيل</span>
                                 <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                             </button>
                         </div>`;
-                    });
+});
                 });
             });
         } catch(e) { console.error(e); trackBtn.innerText = "إظهار العروض"; }
@@ -556,7 +605,12 @@ if (document.getElementById('headerShopName')) {
             const txtEl = document.getElementById('noImageText');
             if (imgEl && txtEl) {
                 if (order.imageUrl && order.imageUrl.length > 20) { 
-                    imgEl.src = order.imageUrl; imgEl.classList.remove('hidden'); txtEl.classList.add('hidden');
+                    imgEl.src = order.imageUrl; 
+                    imgEl.classList.remove('hidden'); 
+                    txtEl.classList.add('hidden');
+                    // إضافة Lightbox لصورة الطلب في التفاصيل
+                    imgEl.onclick = () => window.openLightbox(order.imageUrl);
+                    imgEl.style.cursor = "zoom-in";
                 } else {
                     imgEl.classList.add('hidden'); txtEl.classList.remove('hidden');
                 }
@@ -591,11 +645,47 @@ if (document.getElementById('headerShopName')) {
         setupBalanceRequest(); 
     }
 
+    // --- تعديل دالة طلب الرصيد (لإضافة المعاينة) ---
     function setupBalanceRequest() {
         const btnSendReq = document.getElementById('btnRequestBalance');
         const amountInput = document.getElementById('reqAmount');
         const receiptInput = document.getElementById('reqReceiptImage'); 
         
+        // --- إضافة منطق المعاينة (Smart Preview) للوصل ---
+        if (receiptInput) {
+            receiptInput.addEventListener('change', async (e) => {
+                if(e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    try {
+                        const base64 = await compressImage(file);
+                        
+                        // نحاول إيجاد الـ Label المحيط بالـ Input
+                        const label = receiptInput.closest('label') || receiptInput.parentElement;
+                        
+                        if(label) {
+                            // إنشاء عنصر الصورة إذا لم يكن موجوداً
+                            let previewImg = label.querySelector('img.custom-preview-img');
+                            if(!previewImg) {
+                                previewImg = document.createElement('img');
+                                previewImg.className = 'custom-preview-img w-full h-full object-cover rounded-xl absolute inset-0 z-10 cursor-zoom-in';
+                                // تأكد أن الـ Label يمتلك وضعية تسمح بالتموضع المطلق للصورة
+                                label.style.position = 'relative';
+                                label.style.overflow = 'hidden';
+                                label.appendChild(previewImg);
+                            }
+                            
+                            previewImg.src = base64;
+                            previewImg.onclick = (evt) => {
+                                evt.preventDefault(); // منع فتح نافذة الملفات عند الضغط على الصورة
+                                evt.stopPropagation();
+                                window.openLightbox(base64);
+                            };
+                        }
+                    } catch(err) { console.error("Error previewing receipt", err); }
+                }
+            });
+        }
+
         if (btnSendReq) {
             btnSendReq.addEventListener('click', async () => {
                 const amount = parseInt(amountInput.value);
@@ -619,7 +709,13 @@ if (document.getElementById('headerShopName')) {
                     });
                     alert("✅ تم إرسال طلب الشحن للإدارة بنجاح!");
                     amountInput.value = "";
-                    if (receiptInput) receiptInput.value = "";
+                    if (receiptInput) {
+                        receiptInput.value = "";
+                        // إزالة صورة المعاينة بعد الإرسال
+                        const label = receiptInput.closest('label') || receiptInput.parentElement;
+                        const previewImg = label.querySelector('img.custom-preview-img');
+                        if(previewImg) previewImg.remove();
+                    }
                 } catch (e) {
                     console.error(e);
                     alert("حدث خطأ أثناء الإرسال: " + e.message);
@@ -709,7 +805,7 @@ if (document.getElementById('headerShopName')) {
         });
     }
 
-    // --- دالة عرض السوق (Market) المحدثة ---
+    // --- دالة عرض السوق (Market) ---
     function renderMarketOrders() {
         const list = document.getElementById('ordersList');
         if(!list) return;
@@ -841,9 +937,10 @@ if (document.getElementById('headerShopName')) {
                 if(sendBtn) container.insertBefore(newFields, sendBtn);
             }
             
+            // إعادة تعيين الحقول والصور عند الفتح
             sellerImagesBase64 = [];
             ['thumb1','thumb2','thumb3'].forEach(id => { 
-                const el = document.getElementById(id); if(el) el.classList.add('hidden'); 
+                const el = document.getElementById(id); if(el) { el.src = ""; el.classList.add('hidden'); }
             });
             ['plusIcon1','plusIcon2','plusIcon3'].forEach(id => { 
                 const el = document.getElementById(id); if(el) el.classList.remove('hidden'); 
@@ -1020,7 +1117,9 @@ if(regImgInput) {
                 if(!preview) {
                     preview = document.createElement('img');
                     preview.id = 'regImgPreview';
-                    preview.className = "w-full h-32 object-cover rounded-lg mt-2 border border-gray-600 shadow-lg";
+                    preview.className = "w-full h-32 object-cover rounded-lg mt-2 border border-gray-600 shadow-lg cursor-zoom-in hover:brightness-110 transition";
+                    // Lightbox for registration preview
+                    preview.onclick = () => window.openLightbox(e.target.result);
                     regImgInput.parentNode.appendChild(preview);
                 }
                 preview.src = e.target.result;
@@ -1223,7 +1322,7 @@ function initAdminPanel() {
     }
 
     // ----------------------------------------------------
-    // 2. دوال الرسم (Render Functions) - تستخدم openLightbox الآن
+    // 2. دوال الرسم (Render Functions)
     // ----------------------------------------------------
 
     const renderPending = (data) => {
