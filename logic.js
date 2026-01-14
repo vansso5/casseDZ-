@@ -1221,8 +1221,10 @@ if (btnSendReset) {
 }
 
 // ============================================================
-// 4. منطق الأدمن (ADMIN) - (الكود الكامل: دخول + لوحة تحكم)
+// 4. منطق الأدمن (ADMIN) - (تسجيل دخول آمن + التحقق من الإيميل)
 // ============================================================
+
+// 1. التحقق من الجلسة عند التحميل
 if (localStorage.getItem('adminLoggedIn') === 'true') {
     const loginScreen = document.getElementById('adminLoginScreen');
     const dashboard = document.getElementById('adminDashboard');
@@ -1240,27 +1242,74 @@ if (localStorage.getItem('adminLoggedIn') === 'true') {
 // 2. زر تسجيل الدخول
 const btnAdminLogin = document.getElementById('btnAdminLogin');
 if (btnAdminLogin) {
-    btnAdminLogin.addEventListener('click', () => {
+    btnAdminLogin.addEventListener('click', async () => {
+        const emailInput = document.getElementById('adminEmail'); // New HTML ID
         const passInput = document.getElementById('adminPass');
         
-        if (passInput && passInput.value === "admin123") {
-            // حفظ حالة الدخول
-            localStorage.setItem('adminLoggedIn', 'true');
+        const email = emailInput ? emailInput.value.trim() : "";
+        const password = passInput ? passInput.value : "";
+        
+        // *** هام جداً: ضع هنا إيميل الأدمن الذي أنشأته في فايربيس ***
+        const MY_ADMIN_EMAIL = "david_hassan5@hotmail.com"; 
 
+        if (!email || !password) {
+            alert("يرجى إدخال البريد الإلكتروني وكلمة المرور");
+            return;
+        }
+
+        const originalText = btnAdminLogin.innerText;
+        btnAdminLogin.innerText = "جاري التحقق...";
+        btnAdminLogin.disabled = true;
+
+        try {
+            // محاولة الدخول عبر فايربيس
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // التحقق من أن الإيميل هو إيميل الأدمن الحصري
+            if (user.email !== MY_ADMIN_EMAIL) {
+                await signOut(auth); // طرد المستخدم
+                alert("⛔ عذراً، هذا الحساب ليس لديه صلاحيات المسؤول.");
+                return;
+            }
+            
+            // نجاح الدخول
+            localStorage.setItem('adminLoggedIn', 'true');
             document.getElementById('adminLoginScreen').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
-            initAdminPanel();
-        } else {
-            alert("كلمة المرور خاطئة");
+            
+            if (typeof initAdminPanel === "function") initAdminPanel();
+
+        } catch (error) {
+            console.error("Login Error:", error);
+            let msg = "حدث خطأ أثناء تسجيل الدخول.";
+            if (error.code === 'auth/invalid-email') msg = "البريد الإلكتروني غير صحيح.";
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = "بيانات الدخول غير صحيحة.";
+            if (error.code === 'auth/wrong-password') msg = "كلمة المرور خاطئة.";
+            alert(msg);
+            await signOut(auth);
+        } finally {
+            // استعادة الزر فقط إذا لم يتم الدخول بنجاح
+            if (!localStorage.getItem('adminLoggedIn')) {
+                btnAdminLogin.innerText = originalText;
+                btnAdminLogin.disabled = false;
+            }
         }
     });
 }
 
 // 3. دالة تسجيل الخروج
-window.adminLogout = () => {
-    if(confirm("هل تريد تسجيل الخروج؟")) {
-        localStorage.removeItem('adminLoggedIn');
-        location.reload();
+window.adminLogout = async () => {
+    if (confirm("هل تريد تسجيل الخروج؟")) {
+        try {
+            await signOut(auth);
+            localStorage.removeItem('adminLoggedIn');
+            location.reload();
+        } catch (e) {
+            console.error(e);
+            localStorage.removeItem('adminLoggedIn');
+            location.reload();
+        }
     }
 };
 
