@@ -56,8 +56,13 @@
         </div>
 
         <div class="w-full max-w-xs space-y-4">
+            <!-- حقل البريد الإلكتروني (جديد) -->
             <div class="relative">
-                <input type="password" id="adminPass" class="w-full bg-gray-900/50 border border-gray-700 rounded-2xl py-4 px-6 text-center text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder-gray-700 backdrop-blur-sm" placeholder="••••">
+                <input type="email" id="adminEmail" class="w-full bg-gray-900/50 border border-gray-700 rounded-2xl py-4 px-6 text-center text-lg text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder-gray-700 backdrop-blur-sm" placeholder="example@admin.com">
+            </div>
+            <!-- حقل كلمة المرور -->
+            <div class="relative">
+                <input type="password" id="adminPass" class="w-full bg-gray-900/50 border border-gray-700 rounded-2xl py-4 px-6 text-center text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder-gray-700 backdrop-blur-sm" placeholder="••••••">
             </div>
             <button id="btnAdminLogin" class="w-full bg-white text-gray-900 hover:bg-gray-200 py-4 rounded-2xl font-black text-sm shadow-lg shadow-white/5 transition-transform active:scale-95">تسجيل الدخول</button>
         </div>
@@ -91,42 +96,34 @@
                 </div>
             </div>
 
-            <!-- Stats Cards (مرتبة لتوافق الأزرار السفلية) -->
-            <!-- الترتيب: انضمام (يمين) -> رصيد -> طلبات -> تجار (يسار) -->
+            <!-- Stats Cards -->
             <div class="grid grid-cols-4 px-3 gap-2">
-                
-                <!-- 1. بطاقة الانضمام (Pending) -->
+                <!-- 1. بطاقة الانضمام -->
                 <div id="card-pending" class="stat-card bg-gray-800 rounded-2xl p-2 flex flex-col items-center cursor-default">
                     <span class="text-yellow-500 text-[10px] font-bold mb-1">تفعيل</span>
                     <span id="statPending" class="text-lg font-black text-white">0</span>
                     <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-1 animate-pulse"></span>
                 </div>
-
-                <!-- 2. بطاقة الرصيد (Balance) -->
+                <!-- 2. بطاقة الرصيد -->
                 <div id="card-balance" class="stat-card bg-gray-800 rounded-2xl p-2 flex flex-col items-center cursor-default">
                     <span class="text-purple-500 text-[10px] font-bold mb-1">شحن</span>
                     <span id="statBalance" class="text-lg font-black text-white">--</span>
                 </div>
-
-                <!-- 3. بطاقة الطلبات (Orders) -->
+                <!-- 3. بطاقة الطلبات -->
                 <div id="card-orders" class="stat-card bg-gray-800 rounded-2xl p-2 flex flex-col items-center cursor-default">
                     <span class="text-green-500 text-[10px] font-bold mb-1">الطلبات</span>
                     <span id="statOrders" class="text-lg font-black text-white">0</span>
                 </div>
-
-                <!-- 4. بطاقة التجار (Sellers) -->
+                <!-- 4. بطاقة التجار -->
                 <div id="card-sellers" class="stat-card bg-gray-800 rounded-2xl p-2 flex flex-col items-center cursor-default">
                     <span class="text-blue-500 text-[10px] font-bold mb-1">التجار</span>
                     <span id="statSellers" class="text-lg font-black text-white">0</span>
                 </div>
-
             </div>
         </div>
 
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto p-5 pb-24 space-y-6 bg-[#0f172a] relative">
-            
-            <!-- Section 1: الانضمام -->
             <section id="sec-pending" class="section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">طلبات الانضمام <span class="text-yellow-500 text-xs">(انتظار)</span></h3>
@@ -135,8 +132,6 @@
                     <p class="text-center text-gray-600 text-xs py-10">جاري التحميل...</p>
                 </div>
             </section>
-
-            <!-- Section 2: الرصيد -->
             <section id="sec-balance" class="hidden section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">طلبات الشحن <span class="text-purple-500 text-xs">(المالية)</span></h3>
@@ -145,8 +140,6 @@
                     <p class="text-center text-gray-600 text-xs py-10 border border-dashed border-gray-800 rounded-2xl">لا توجد طلبات شحن</p>
                 </div>
             </section>
-
-            <!-- Section 3: الطلبات -->
             <section id="sec-orders" class="hidden section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">طلبات القطع <span class="text-green-500 text-xs">(نشطة)</span></h3>
@@ -155,8 +148,6 @@
                     <p class="text-center text-gray-600 text-xs py-10">جاري التحميل...</p>
                 </div>
             </section>
-
-            <!-- Section 4: التجار -->
             <section id="sec-sellers" class="hidden section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">التجار المعتمدين <span class="text-blue-500 text-xs">(الكل)</span></h3>
@@ -165,15 +156,12 @@
                     <p class="text-center text-gray-600 text-xs py-10">جاري التحميل...</p>
                 </div>
             </section>
-
             <div id="adminRequestsList" class="hidden"></div>
         </main>
 
         <!-- Bottom Navigation -->
         <nav class="fixed bottom-0 w-full bg-gray-900/95 backdrop-blur-md border-t border-gray-800 pb-4 pt-2 z-50 px-2">
             <div class="grid grid-cols-4 gap-1">
-                
-                <!-- زر الانضمام (Active افتراضياً) -->
                 <button onclick="showSection('pending')" id="nav-pending" class="nav-item active flex flex-col items-center gap-1 py-1 transition-all duration-300 group">
                     <div class="relative p-1.5 rounded-xl group-hover:bg-gray-800 transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
@@ -181,85 +169,61 @@
                     </div>
                     <span class="text-[10px] font-medium text-gray-400 group-hover:text-white transition-colors">انضمام</span>
                 </button>
-
-                <!-- زر مالية -->
                 <button onclick="showSection('balance')" id="nav-balance" class="nav-item flex flex-col items-center gap-1 py-1 transition-all duration-300 group text-gray-500">
                     <div class="relative p-1.5 rounded-xl group-hover:bg-gray-800 transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
                     <span class="text-[10px] font-medium group-hover:text-white transition-colors">مالية</span>
                 </button>
-
-                <!-- زر الطلبات -->
                 <button onclick="showSection('orders')" id="nav-orders" class="nav-item flex flex-col items-center gap-1 py-1 transition-all duration-300 group text-gray-500">
                     <div class="relative p-1.5 rounded-xl group-hover:bg-gray-800 transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                     </div>
                     <span class="text-[10px] font-medium group-hover:text-white transition-colors">الطلبات</span>
                 </button>
-
-                <!-- زر التجار -->
                 <button onclick="showSection('sellers')" id="nav-sellers" class="nav-item flex flex-col items-center gap-1 py-1 transition-all duration-300 group text-gray-500">
                     <div class="relative p-1.5 rounded-xl group-hover:bg-gray-800 transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m8-2a2 2 0 100-4m0 4a2 2 0 110-4m-6 4v-4m12 4v-4"></path></svg>
                     </div>
                     <span class="text-[10px] font-medium group-hover:text-white transition-colors">التجار</span>
                 </button>
-
             </div>
         </nav>
-
     </div>
 
     <script>
-        // تفعيل البطاقة الأولى افتراضياً
         document.addEventListener('DOMContentLoaded', () => {
             if(document.getElementById('adminDashboard')) {
                 document.getElementById('card-pending').classList.add('active-pending');
             }
         });
-
         function showSection(secId) {
-            // 1. إخفاء كل الأقسام
             ['pending', 'balance', 'orders', 'sellers'].forEach(id => {
-                // إخفاء المحتوى
                 const section = document.getElementById('sec-' + id);
                 if(section) section.classList.add('hidden');
-                
-                // إلغاء تفعيل الزر السفلي
                 const btn = document.getElementById('nav-' + id);
                 if(btn) {
                     btn.classList.remove('active', 'text-orange-500');
                     btn.classList.add('text-gray-500');
                 }
-
-                // إلغاء إضاءة البطاقة العلوية
                 const card = document.getElementById('card-' + id);
                 if(card) {
                     card.classList.remove('active-pending', 'active-balance', 'active-orders', 'active-sellers');
                 }
             });
-
-            // 2. إظهار القسم المطلوب
             const targetSection = document.getElementById('sec-' + secId);
             if(targetSection) targetSection.classList.remove('hidden');
-
-            // 3. تفعيل الزر السفلي
             const activeBtn = document.getElementById('nav-' + secId);
             if(activeBtn) {
                 activeBtn.classList.add('active', 'text-orange-500');
                 activeBtn.classList.remove('text-gray-500');
             }
-
-            // 4. إضاءة البطاقة العلوية المناسبة
             const activeCard = document.getElementById('card-' + secId);
             if(activeCard) {
                 activeCard.classList.add('active-' + secId);
             }
         }
     </script>
-
-    <!-- ربط ملف المنطق -->
     <script type="module" src="./logic.js"></script>
 </body>
 </html>
