@@ -17,9 +17,19 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app); 
 const db = getFirestore(app);
 
-// متغيرات عالمية
+// ============================================================
+// Global Variables & State
+// ============================================================
 let currentReviewSellerId = null;
 let currentReviewOrderId = null;
+
+// Pagination Limits (التحكم في عدد العناصر المعروضة)
+let marketLimit = 50; 
+let adminOrdersLimit = 50;
+
+// Notification State (حالة الإشعارات للتاجر)
+let isFirstLoad = true; 
+let notificationCount = 0;
 
 // ============================================================
 // Helpers & Utilities
@@ -63,6 +73,7 @@ window.openLightbox = (src) => {
     box.classList.remove('hidden');
 };
 
+// --- دالة ضغط الصور المحسنة (New Improved Compression) ---
 const compressImage = (file) => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -72,7 +83,16 @@ const compressImage = (file) => {
             img.src = event.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
+                // إعدادات ديناميكية: تصغير الصور الكبيرة جداً لتفادي مشاكل الذاكرة
+                let MAX_WIDTH = 800; 
+                let quality = 0.6;
+
+                // إذا الصورة أكبر من 2MB، نضغط بقوة أكبر
+                if (file.size > 2 * 1024 * 1024) {
+                    MAX_WIDTH = 600;
+                    quality = 0.5;
+                }
+
                 const scaleSize = MAX_WIDTH / img.width;
                 if (img.width > MAX_WIDTH) {
                     canvas.width = MAX_WIDTH;
@@ -83,7 +103,7 @@ const compressImage = (file) => {
                 }
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                resolve(canvas.toDataURL('image/jpeg', 0.6));
+                resolve(canvas.toDataURL('image/jpeg', quality));
             };
         };
     });
@@ -125,7 +145,7 @@ async function updateRatingUI(sellerId, elementId) {
     } catch(e) { console.error("Rating Error", e); }
 }
 
-// --- Smart Preview Logic (المعاينة الفورية العامة) ---
+// --- Smart Preview Logic ---
 window.previewThumb = (input) => {
     const num = input.id.slice(-1); 
     const thumbId = 'thumb' + num;
@@ -395,17 +415,13 @@ if (trackBtn) {
                     // الترتيب حسب التقييم
                     processedOffers.sort((a, b) => b.avgRating - a.avgRating);
 
-// 3. عرض العروض (تم تعديل مكان النجوم ليكون بجانب الولاية)
+// 3. عرض العروض
 processedOffers.forEach((o) => {
     const offerDataStr = encodeURIComponent(JSON.stringify(o));
-    // تنسيق النجوم: إذا كان هناك تقييم تظهر النجمة، وإلا تظهر كلمة "جديد"
     const ratingBadge = o.avgRating > 0 ? `★ ${o.avgRating.toFixed(1)}` : `🆕`;
     
     list.innerHTML += `
                         <div class="bg-gray-800 p-5 rounded-[2rem] border border-gray-700 mb-4 shadow-lg hover:border-gray-600 transition-all cursor-pointer group relative overflow-hidden" onclick="openCustomerOfferDetails('${offerDataStr}')">
-                            
-                            <!-- تم حذف النجوم العائمة من هنا -->
-
                             <div class="flex justify-between items-start mb-3 mt-2">
                                 <div class="flex flex-col">
                                     <span class="text-[10px] text-gray-400">السعر</span>
@@ -422,7 +438,6 @@ processedOffers.forEach((o) => {
                                 </div>
                                 <div>
                                     <p class="text-xs text-gray-400">موقع القطعة</p>
-                                    <!-- هنا التعديل: وضعنا التقييم بجانب الولاية -->
                                     <div class="flex items-center gap-2">
                                         <p class="text-sm font-bold text-white">${o.displayWilaya}</p>
                                         <span class="text-[10px] text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 font-bold flex items-center gap-1">
@@ -622,6 +637,15 @@ if (document.getElementById('headerShopName')) {
     async function initDashboard() {
         if (!currentSellerId) { window.location.href = 'seller-login.html'; return; }
         
+        // --- طلب إذن الإشعارات (للتطبيق لاحقاً) ---
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    console.log("الإشعارات مفعلة للتاجر");
+                }
+            });
+        }
+
         onSnapshot(doc(db, "sellers", currentSellerId), (docSnap) => {
             if (docSnap.exists()) {
                 currentSellerData = docSnap.data();
@@ -727,6 +751,7 @@ if (document.getElementById('headerShopName')) {
         }
     }  
 
+    // --- تحديث: الاستماع (مع الإشعارات الذكية) ---
     function startListeners() {
         onSnapshot(query(collection(db, "offers"), where("sellerId", "==", currentSellerId)), (snap) => {
             allMyOffers = [];
@@ -740,9 +765,30 @@ if (document.getElementById('headerShopName')) {
             renderMarketOrders(); 
         });
 
+        // مراقبة الطلبات (مع إشعار ذكي للطلبات الجديدة)
         onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
             allMarketOrders = [];
+            
+            // فحص التغييرات لإرسال الإشعار
+            if (!isFirstLoad) {
+                snap.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const data = change.doc.data();
+                        const now = new Date();
+                        const orderTime = data.createdAt ? data.createdAt.toDate() : new Date();
+                        const diff = (now - orderTime) / 1000; 
+
+                        if (diff < 60) { // إذا كان الطلب وصل في آخر دقيقة
+                            notificationCount++; 
+                            sendSmartNotification(notificationCount);
+                        }
+                    }
+                });
+            }
+
             snap.forEach(d => allMarketOrders.push({ id: d.id, ...d.data() }));
+            
+            isFirstLoad = false;
             renderMarketOrders(); 
             renderMyOffers(); 
         });
@@ -777,6 +823,24 @@ if (document.getElementById('headerShopName')) {
         });
     }
 
+    // --- دالة إرسال الإشعار الذكي (تتحدث بنفس الـ tag) ---
+    function sendSmartNotification(count) {
+        if (Notification.permission === "granted") {
+            const notif = new Notification("🔔 طلبات جديدة في السوق", {
+                body: `لديك ${count} طلبات جديدة تنتظر العرض. اضغط للمعاينة.`,
+                icon: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png", 
+                tag: "market-updates", // يمنع التكرار
+                vibrate: [200, 100, 200]
+            });
+
+            notif.onclick = function() {
+                window.focus(); 
+                notif.close();
+                notificationCount = 0; 
+            };
+        }
+    }
+
     function renderMyOffers() {
         const list = document.getElementById('myOffersList');
         if(!list) return;
@@ -805,7 +869,7 @@ if (document.getElementById('headerShopName')) {
         });
     }
 
-    // --- دالة عرض السوق (Market) ---
+    // --- دالة عرض السوق (Market) مع Pagination ---
     function renderMarketOrders() {
         const list = document.getElementById('ordersList');
         if(!list) return;
@@ -842,7 +906,10 @@ if (document.getElementById('headerShopName')) {
             return; 
         }
         
-        visible.forEach(o => {
+        // --- Pagination Logic: عرض 50 فقط ---
+        const itemsToShow = visible.slice(0, marketLimit);
+        
+        itemsToShow.forEach(o => {
             const isSold = (o.status === 'sold');
             if (isSold) {
                 list.innerHTML += `
@@ -885,6 +952,18 @@ if (document.getElementById('headerShopName')) {
                 </div>`;
             }
         });
+
+        // زر تحميل المزيد في السوق
+        if (visible.length > marketLimit) {
+            const loadMoreBtn = document.createElement('button');
+            loadMoreBtn.className = "w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition my-4 text-sm";
+            loadMoreBtn.innerText = "تحميل المزيد من الطلبات ⟳";
+            loadMoreBtn.onclick = () => {
+                marketLimit += 50;
+                renderMarketOrders();
+            };
+            list.appendChild(loadMoreBtn);
+        }
     }
     
     function getWilayaName(num) {
@@ -1221,35 +1300,53 @@ if (btnSendReset) {
 }
 
 // ============================================================
-// 4. منطق الأدمن (ADMIN) - (تسجيل دخول آمن + التحقق من الإيميل)
+// 4. منطق الأدمن (ADMIN) - معدل بالكامل (إصلاح مشكلة التراكب)
 // ============================================================
 
-// 1. التحقق من الجلسة عند التحميل
-if (localStorage.getItem('adminLoggedIn') === 'true') {
-    const loginScreen = document.getElementById('adminLoginScreen');
-    const dashboard = document.getElementById('adminDashboard');
-    
-    if (loginScreen && dashboard) {
-        loginScreen.classList.add('hidden');
-        dashboard.classList.remove('hidden');
-        // تأخير بسيط لضمان تحميل الدالة
-        setTimeout(() => {
-            if (typeof initAdminPanel === "function") initAdminPanel();
-        }, 100);
+// دالة مساعدة للتحقق من حالة الأدمن وتطبيق العرض الصحيح بالقوة
+function checkAdminAuth() {
+    const isAdmin = localStorage.getItem('adminLoggedIn') === 'true';
+    const loginDiv = document.getElementById('adminLoginScreen');
+    const dashDiv = document.getElementById('adminDashboard');
+
+    if(!loginDiv || !dashDiv) return;
+
+    if (isAdmin) {
+        // إذا كان مسجلاً: إخفاء تسجيل الدخول وإظهار اللوحة
+        loginDiv.style.display = 'none'; // فرض الإخفاء
+        loginDiv.classList.add('hidden');
+        
+        dashDiv.style.display = 'flex'; // فرض الإظهار بـ flex (لأن HTML يستخدم flex)
+        dashDiv.classList.remove('hidden');
+        
+        // التأكد من تشغيل الدالة
+        if (typeof initAdminPanel === 'function') initAdminPanel();
+    } else {
+        // إذا لم يكن مسجلاً: إظهار تسجيل الدخول وإخفاء اللوحة
+        dashDiv.style.display = 'none';
+        dashDiv.classList.add('hidden');
+        
+        loginDiv.style.display = 'flex';
+        loginDiv.classList.remove('hidden');
     }
 }
 
-// 2. زر تسجيل الدخول
+// عند تحميل الصفحة
+document.addEventListener("DOMContentLoaded", () => {
+    if (document.getElementById('adminLoginScreen')) {
+        checkAdminAuth();
+    }
+});
+
+// زر تسجيل الدخول
 const btnAdminLogin = document.getElementById('btnAdminLogin');
 if (btnAdminLogin) {
     btnAdminLogin.addEventListener('click', async () => {
-        const emailInput = document.getElementById('adminEmail'); // New HTML ID
+        const emailInput = document.getElementById('adminEmail');
         const passInput = document.getElementById('adminPass');
         
         const email = emailInput ? emailInput.value.trim() : "";
         const password = passInput ? passInput.value : "";
-        
-        // *** هام جداً: ضع هنا إيميل الأدمن الذي أنشأته في فايربيس ***
         const MY_ADMIN_EMAIL = "david_hassan5@hotmail.com"; 
 
         if (!email || !password) {
@@ -1262,34 +1359,24 @@ if (btnAdminLogin) {
         btnAdminLogin.disabled = true;
 
         try {
-            // محاولة الدخول عبر فايربيس
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // التحقق من أن الإيميل هو إيميل الأدمن الحصري
             if (user.email !== MY_ADMIN_EMAIL) {
-                await signOut(auth); // طرد المستخدم
+                await signOut(auth);
                 alert("⛔ عذراً، هذا الحساب ليس لديه صلاحيات المسؤول.");
                 return;
             }
             
-            // نجاح الدخول
             localStorage.setItem('adminLoggedIn', 'true');
-            document.getElementById('adminLoginScreen').classList.add('hidden');
-            document.getElementById('adminDashboard').classList.remove('hidden');
-            
-            if (typeof initAdminPanel === "function") initAdminPanel();
+            checkAdminAuth(); // تحديث الواجهة فوراً
 
         } catch (error) {
             console.error("Login Error:", error);
-            let msg = "حدث خطأ أثناء تسجيل الدخول.";
-            if (error.code === 'auth/invalid-email') msg = "البريد الإلكتروني غير صحيح.";
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = "بيانات الدخول غير صحيحة.";
-            if (error.code === 'auth/wrong-password') msg = "كلمة المرور خاطئة.";
-            alert(msg);
+            alert("بيانات الدخول غير صحيحة.");
             await signOut(auth);
         } finally {
-            // استعادة الزر فقط إذا لم يتم الدخول بنجاح
+            // الاستعادة فقط إذا لم ينجح الدخول
             if (!localStorage.getItem('adminLoggedIn')) {
                 btnAdminLogin.innerText = originalText;
                 btnAdminLogin.disabled = false;
@@ -1298,18 +1385,13 @@ if (btnAdminLogin) {
     });
 }
 
-// 3. دالة تسجيل الخروج
+// دالة تسجيل الخروج
 window.adminLogout = async () => {
     if (confirm("هل تريد تسجيل الخروج؟")) {
-        try {
-            await signOut(auth);
-            localStorage.removeItem('adminLoggedIn');
-            location.reload();
-        } catch (e) {
-            console.error(e);
-            localStorage.removeItem('adminLoggedIn');
-            location.reload();
-        }
+        try { await signOut(auth); } catch (e) {}
+        localStorage.removeItem('adminLoggedIn');
+        checkAdminAuth(); // تحديث الواجهة فوراً
+        location.reload();
     }
 };
 
@@ -1436,7 +1518,10 @@ function initAdminPanel() {
         list.innerHTML = "";
         if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10">لا توجد نتائج مطابقة</p>`; return; }
 
-        data.forEach(item => {
+        // --- Pagination Logic for Admin ---
+        const itemsToShow = data.slice(0, adminOrdersLimit);
+
+        itemsToShow.forEach(item => {
             const d = item.data;
             const imgHtml = d.imageUrl ? `<img src="${d.imageUrl}" class="w-10 h-10 rounded-lg object-cover border border-gray-600 cursor-zoom-in ml-2 hover:brightness-110 transition" onclick="openLightbox(this.src)">` : ``;
 
@@ -1460,6 +1545,19 @@ function initAdminPanel() {
               </button>
             </div>`;
         });
+
+        // زر تحميل المزيد للأدمن
+        if (data.length > adminOrdersLimit) {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-center py-2 text-xs text-blue-400 hover:text-blue-300";
+            btn.innerText = "عرض المزيد...";
+            btn.onclick = () => {
+                adminOrdersLimit += 50;
+                // إعادة الرسم بالحد الجديد
+                renderOrders(data);
+            };
+            list.appendChild(btn);
+        }
     };
 
     const renderSellers = (data) => {
@@ -1539,19 +1637,40 @@ function initAdminPanel() {
         performGlobalSearch();
     });
 
-    // تنظيف تلقائي عند البدء
+    // ============================================================
+    // تنظيف تلقائي شامل (طلبات، مبيعات، عروض، وطلبات شحن) بعد 30 يوم
+    // ============================================================
     async function systemAutoCleanup() {
+        // تحديد الفترة الزمنية (30 يوماً)
         const THIRTY_DAYS_AGO = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
+        
         try {
-            // حذف الطلبات القديمة
+            console.log("Starting System Cleanup (Deleting data older than 30 days)...");
+
+            // 1. حذف الطلبات القديمة (Orders)
+            // ملاحظة: هذا يحذف الصور تلقائياً لأنها مخزنة كـ Base64 داخل المستند
             const oldOrders = await getDocs(query(collection(db, "orders"), where("createdAt", "<", THIRTY_DAYS_AGO)));
             oldOrders.forEach(async (d) => { await deleteDoc(d.ref); });
 
-            // حذف المبيعات القديمة
+            // 2. حذف المبيعات القديمة (Sales)
             const oldSales = await getDocs(query(collection(db, "sales"), where("soldAt", "<", THIRTY_DAYS_AGO)));
             oldSales.forEach(async (d) => { await deleteDoc(d.ref); });
 
-            if (!oldOrders.empty || !oldSales.empty) console.log("System cleanup performed.");
+            // 3. حذف طلبات الشحن القديمة (Balance Requests) - يشمل صور الوصولات
+            const oldRequests = await getDocs(query(collection(db, "balance_requests"), where("createdAt", "<", THIRTY_DAYS_AGO)));
+            oldRequests.forEach(async (d) => { await deleteDoc(d.ref); });
+
+            // 4. حذف العروض القديمة (Offers) - يشمل صور القطع المعروضة
+            const oldOffers = await getDocs(query(collection(db, "offers"), where("createdAt", "<", THIRTY_DAYS_AGO)));
+            oldOffers.forEach(async (d) => { await deleteDoc(d.ref); });
+
+            if (!oldOrders.empty || !oldSales.empty || !oldRequests.empty || !oldOffers.empty) {
+                console.log(`Cleanup Report: 
+                - Deleted Orders: ${oldOrders.size}
+                - Deleted Sales: ${oldSales.size}
+                - Deleted Requests: ${oldRequests.size}
+                - Deleted Offers: ${oldOffers.size}`);
+            }
         } catch (e) { console.error("Cleanup error:", e); }
     }
     systemAutoCleanup();
@@ -1596,3 +1715,40 @@ window.adminRejectTopUp = async (reqId) => {
     await updateDoc(doc(db, "balance_requests", reqId), { status: 'rejected', processedAt: serverTimestamp() });
     alert("تم الرفض");
 };
+
+// ============================================================
+// FIX: إجبار المتصفح على إخفاء نافذة الدخول عند وجود تسجيل سابق
+// ============================================================
+setInterval(() => {
+    // التحقق كل ثانية للتأكد من أن الواجهة صحيحة
+    const isAdmin = localStorage.getItem('adminLoggedIn') === 'true';
+    const loginScreen = document.getElementById('adminLoginScreen');
+    const dashboard = document.getElementById('adminDashboard');
+
+    // إذا لم نكن في صفحة الأدمن أصلاً (loginScreen و dashboard غير موجودين) لا تفعل شيئاً
+    if (!loginScreen || !dashboard) return;
+
+    if (isAdmin) {
+        // إذا كان مسجلاً: أخفِ الدخول بقوة وأظهر اللوحة
+        if (loginScreen.style.display !== 'none') {
+            loginScreen.style.setProperty('display', 'none', 'important');
+            loginScreen.classList.add('hidden');
+        }
+        if (dashboard.classList.contains('hidden') || dashboard.style.display === 'none') {
+            dashboard.style.display = 'flex'; // استخدام flex لأن التصميم يعتمد عليه
+            dashboard.classList.remove('hidden');
+            // تشغيل لوحة التحكم إذا لم تكن تعمل
+            if (typeof initAdminPanel === 'function') initAdminPanel();
+        }
+    } else {
+        // إذا لم يكن مسجلاً: أظهر الدخول وأخفِ اللوحة
+        if (dashboard.style.display !== 'none') {
+            dashboard.style.display = 'none';
+            dashboard.classList.add('hidden');
+        }
+        if (loginScreen.classList.contains('hidden') || loginScreen.style.display === 'none') {
+            loginScreen.style.display = 'flex';
+            loginScreen.classList.remove('hidden');
+        }
+    }
+}, 1000); // يفحص كل ثانية
