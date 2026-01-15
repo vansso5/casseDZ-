@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f97316">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>الإدارة | La Casse Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -20,30 +24,30 @@
         }
     </script>
     <style> 
-        body { background-color: #0f172a; color: white; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        /* تعديل 1: استخدام 100dvh لضمان الطول الصحيح على الموبايل ومنع حركة الصفحة بالكامل */
+        html, body { height: 100dvh; overflow: hidden; background-color: #0f172a; color: white; }
         
-        /* تنسيق الأزرار السفلية النشطة */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
         .nav-item.active { color: #f97316; }
         .nav-item.active svg { transform: translateY(-5px); filter: drop-shadow(0 4px 6px rgba(249,115,22,0.4)); }
         .nav-item.active span { font-weight: 800; opacity: 1; }
         
-        /* تأثيرات الحركة */
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .section-animate { animation: slideIn 0.3s ease-out forwards; }
 
-        /* تأثير البطاقة النشطة في الأعلى */
         .stat-card { transition: all 0.3s ease; border: 1px solid rgba(55, 65, 81, 0.5); }
-        .stat-card.active-pending { border-color: #eab308; background-color: rgba(234, 179, 8, 0.1); transform: scale(1.05); box-shadow: 0 0 15px rgba(234, 179, 8, 0.2); }
-        .stat-card.active-balance { border-color: #a855f7; background-color: rgba(168, 85, 247, 0.1); transform: scale(1.05); box-shadow: 0 0 15px rgba(168, 85, 247, 0.2); }
-        .stat-card.active-orders { border-color: #22c55e; background-color: rgba(34, 197, 94, 0.1); transform: scale(1.05); box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); }
-        .stat-card.active-sellers { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.1); transform: scale(1.05); box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); }
+        .stat-card.active-pending { border-color: #eab308; background-color: rgba(234, 179, 8, 0.1); transform: scale(1.05); }
+        .stat-card.active-balance { border-color: #a855f7; background-color: rgba(168, 85, 247, 0.1); transform: scale(1.05); }
+        .stat-card.active-orders { border-color: #22c55e; background-color: rgba(34, 197, 94, 0.1); transform: scale(1.05); }
+        .stat-card.active-sellers { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.1); transform: scale(1.05); }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden selection:bg-orange-500 selection:text-white">
+<body>
 
     <!-- 1. شاشة الدخول -->
-    <div id="adminLoginScreen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-[#0f172a]">
+    <div id="adminLoginScreen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-[#0f172a] overflow-y-auto">
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
             <div class="absolute top-[-10%] right-[-10%] w-64 h-64 bg-orange-600/20 rounded-full blur-[100px]"></div>
             <div class="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-blue-600/20 rounded-full blur-[100px]"></div>
@@ -56,11 +60,9 @@
         </div>
 
         <div class="w-full max-w-xs space-y-4">
-            <!-- حقل البريد الإلكتروني (جديد) -->
             <div class="relative">
                 <input type="email" id="adminEmail" class="w-full bg-gray-900/50 border border-gray-700 rounded-2xl py-4 px-6 text-center text-lg text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder-gray-700 backdrop-blur-sm" placeholder="example@admin.com">
             </div>
-            <!-- حقل كلمة المرور -->
             <div class="relative">
                 <input type="password" id="adminPass" class="w-full bg-gray-900/50 border border-gray-700 rounded-2xl py-4 px-6 text-center text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder-gray-700 backdrop-blur-sm" placeholder="••••••">
             </div>
@@ -69,10 +71,12 @@
     </div>
 
     <!-- 2. لوحة التحكم -->
-    <div id="adminDashboard" class="hidden flex-col h-full">
+    <!-- تعديل 2: إضافة fixed inset-0 لضمان ثبات الحاوية -->
+    <div id="adminDashboard" class="hidden fixed inset-0 flex flex-col w-full h-full bg-[#0f172a]">
         
-        <!-- Header & Stats -->
-        <div class="bg-gray-900/80 backdrop-blur-xl border-b border-gray-800 z-30 pb-4">
+        <!-- Header & Stats (ثابت) -->
+        <!-- تعديل 3: إضافة shrink-0 لمنع التقلص -->
+        <div class="bg-gray-900/80 backdrop-blur-xl border-b border-gray-800 z-30 pb-4 shrink-0">
             <header class="flex justify-between items-center px-5 py-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">CP</div>
@@ -89,7 +93,7 @@
             <!-- Search -->
             <div class="px-5 mb-4">
                 <div class="relative">
-                    <input type="text" id="globalAdminSearch" class="w-full bg-gray-800 border-none rounded-2xl py-3 pl-4 pr-12 text-sm text-white focus:ring-2 focus:ring-orange-500/50 placeholder-gray-600 transition shadow-inner" placeholder="بحث شامل (اسم، هاتف، ولاية...)">
+                    <input type="text" id="globalAdminSearch" class="w-full bg-gray-800 border-none rounded-2xl py-3 pl-4 pr-12 text-sm text-white focus:ring-2 focus:ring-orange-500/50 placeholder-gray-600 transition shadow-inner" placeholder="بحث شامل...">
                     <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                         <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
@@ -98,23 +102,19 @@
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-4 px-3 gap-2">
-                <!-- 1. بطاقة الانضمام -->
                 <div id="card-pending" class="stat-card bg-gray-800 rounded-2xl p-2 flex flex-col items-center cursor-default">
                     <span class="text-yellow-500 text-[10px] font-bold mb-1">تفعيل</span>
                     <span id="statPending" class="text-lg font-black text-white">0</span>
                     <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-1 animate-pulse"></span>
                 </div>
-                <!-- 2. بطاقة الرصيد -->
                 <div id="card-balance" class="stat-card bg-gray-800 rounded-2xl p-2 flex flex-col items-center cursor-default">
                     <span class="text-purple-500 text-[10px] font-bold mb-1">شحن</span>
                     <span id="statBalance" class="text-lg font-black text-white">--</span>
                 </div>
-                <!-- 3. بطاقة الطلبات -->
                 <div id="card-orders" class="stat-card bg-gray-800 rounded-2xl p-2 flex flex-col items-center cursor-default">
                     <span class="text-green-500 text-[10px] font-bold mb-1">الطلبات</span>
                     <span id="statOrders" class="text-lg font-black text-white">0</span>
                 </div>
-                <!-- 4. بطاقة التجار -->
                 <div id="card-sellers" class="stat-card bg-gray-800 rounded-2xl p-2 flex flex-col items-center cursor-default">
                     <span class="text-blue-500 text-[10px] font-bold mb-1">التجار</span>
                     <span id="statSellers" class="text-lg font-black text-white">0</span>
@@ -122,8 +122,10 @@
             </div>
         </div>
 
-        <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto p-5 pb-24 space-y-6 bg-[#0f172a] relative">
+        <!-- Main Content (المحتوى القابل للسكرول) -->
+        <!-- تعديل 4: إضافة overflow-y-auto هنا للسماح بالسكرول داخل هذا الجزء فقط -->
+        <!-- تعديل 5: إضافة pb-24 لضمان عدم اختفاء المحتوى خلف القائمة السفلية -->
+        <main class="flex-1 overflow-y-auto p-5 pb-24 space-y-6 bg-[#0f172a] relative hide-scrollbar w-full">
             <section id="sec-pending" class="section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">طلبات الانضمام <span class="text-yellow-500 text-xs">(انتظار)</span></h3>
@@ -159,7 +161,7 @@
             <div id="adminRequestsList" class="hidden"></div>
         </main>
 
-        <!-- Bottom Navigation -->
+        <!-- Bottom Navigation (ثابت) -->
         <nav class="fixed bottom-0 w-full bg-gray-900/95 backdrop-blur-md border-t border-gray-800 pb-4 pt-2 z-50 px-2">
             <div class="grid grid-cols-4 gap-1">
                 <button onclick="showSection('pending')" id="nav-pending" class="nav-item active flex flex-col items-center gap-1 py-1 transition-all duration-300 group">
