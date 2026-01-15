@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script>
+    // هذا الكود يعمل كحارس بوابة فوري
+    // إذا كان الأدمن مسجلاً للدخول، نقوم بحقن كود CSS يخفي نافذة الدخول فوراً وبقوة
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+        document.write('<style>#adminLoginScreen { display: none !important; } #adminDashboard { display: flex !important; }</style>');
+    }
+</script>
     <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#f97316">
 <meta name="apple-mobile-web-app-capable" content="yes">
