@@ -1300,455 +1300,265 @@ if (btnSendReset) {
 }
 
 // ============================================================
-// 4. منطق الأدمن (ADMIN) - معدل بالكامل (إصلاح مشكلة التراكب)
+// 4. منطق الأدمن (ADMIN) - النسخة النهائية الموحدة والمصححة
 // ============================================================
 
-// دالة مساعدة للتحقق من حالة الأدمن وتطبيق العرض الصحيح بالقوة
+// 1. التحقق من حالة الأدمن وتطبيق العرض الصحيح
 function checkAdminAuth() {
     const isAdmin = localStorage.getItem('adminLoggedIn') === 'true';
     const loginDiv = document.getElementById('adminLoginScreen');
     const dashDiv = document.getElementById('adminDashboard');
 
-    if(!loginDiv || !dashDiv) return;
+    if (!loginDiv || !dashDiv) return;
 
     if (isAdmin) {
-        // إذا كان مسجلاً: إخفاء تسجيل الدخول وإظهار اللوحة
-        loginDiv.style.display = 'none'; // فرض الإخفاء
-        loginDiv.classList.add('hidden');
-        
-        dashDiv.style.display = 'flex'; // فرض الإظهار بـ flex (لأن HTML يستخدم flex)
+        loginDiv.style.display = 'none';
+        dashDiv.style.display = 'flex';
         dashDiv.classList.remove('hidden');
-        
-        // التأكد من تشغيل الدالة
-        if (typeof initAdminPanel === 'function') initAdminPanel();
+        // تشغيل اللوحة
+        initAdminPanel();
     } else {
-        // إذا لم يكن مسجلاً: إظهار تسجيل الدخول وإخفاء اللوحة
         dashDiv.style.display = 'none';
-        dashDiv.classList.add('hidden');
-        
         loginDiv.style.display = 'flex';
         loginDiv.classList.remove('hidden');
     }
 }
 
-// عند تحميل الصفحة
+// 2. معالجة تسجيل الدخول عند تحميل الصفحة
 document.addEventListener("DOMContentLoaded", () => {
     if (document.getElementById('adminLoginScreen')) {
         checkAdminAuth();
     }
-});
 
-// زر تسجيل الدخول
-const btnAdminLogin = document.getElementById('btnAdminLogin');
-if (btnAdminLogin) {
-    btnAdminLogin.addEventListener('click', async () => {
-        const emailInput = document.getElementById('adminEmail');
-        const passInput = document.getElementById('adminPass');
-        
-        const email = emailInput ? emailInput.value.trim() : "";
-        const password = passInput ? passInput.value : "";
-        const MY_ADMIN_EMAIL = "david_hassan5@hotmail.com"; 
+    const btnAdminLogin = document.getElementById('btnAdminLogin');
+    if (btnAdminLogin) {
+        btnAdminLogin.addEventListener('click', async () => {
+            const emailInput = document.getElementById('adminEmail');
+            const passInput = document.getElementById('adminPass');
+            const email = emailInput ? emailInput.value.trim() : "";
+            const password = passInput ? passInput.value : "";
+            const MY_ADMIN_EMAIL = "david_hassan5@hotmail.com";
 
-        if (!email || !password) {
-            alert("يرجى إدخال البريد الإلكتروني وكلمة المرور");
-            return;
-        }
-
-        const originalText = btnAdminLogin.innerText;
-        btnAdminLogin.innerText = "جاري التحقق...";
-        btnAdminLogin.disabled = true;
-
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            if (user.email !== MY_ADMIN_EMAIL) {
-                await signOut(auth);
-                alert("⛔ عذراً، هذا الحساب ليس لديه صلاحيات المسؤول.");
+            if (!email || !password) {
+                alert("يرجى إدخال البريد الإلكتروني وكلمة المرور");
                 return;
             }
-            
-            localStorage.setItem('adminLoggedIn', 'true');
-            checkAdminAuth(); // تحديث الواجهة فوراً
 
-        } catch (error) {
-            console.error("Login Error:", error);
-            alert("بيانات الدخول غير صحيحة.");
-            await signOut(auth);
-        } finally {
-            // الاستعادة فقط إذا لم ينجح الدخول
-            if (!localStorage.getItem('adminLoggedIn')) {
-                btnAdminLogin.innerText = originalText;
+            btnAdminLogin.innerText = "جاري التحقق...";
+            btnAdminLogin.disabled = true;
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                if (userCredential.user.email !== MY_ADMIN_EMAIL) {
+                    await signOut(auth);
+                    alert("⛔ عذراً، ليس لديك صلاحيات المسؤول.");
+                    return;
+                }
+                localStorage.setItem('adminLoggedIn', 'true');
+                checkAdminAuth();
+            } catch (error) {
+                alert("بيانات الدخول غير صحيحة.");
+            } finally {
+                btnAdminLogin.innerText = "تسجيل الدخول";
                 btnAdminLogin.disabled = false;
             }
-        }
-    });
-}
+        });
+    }
+});
 
-// دالة تسجيل الخروج
+// 3. تسجيل الخروج
 window.adminLogout = async () => {
     if (confirm("هل تريد تسجيل الخروج؟")) {
         try { await signOut(auth); } catch (e) {}
         localStorage.removeItem('adminLoggedIn');
-        checkAdminAuth(); // تحديث الواجهة فوراً
         location.reload();
     }
 };
 
-// ============================================================
-// دالة لوحة الأدمن (initAdminPanel)
-// ============================================================
+// 4. دالة لوحة الأدمن المركزية
 function initAdminPanel() {
     let state = {
         pending: [],
         orders: [],
         sellers: [],
-        balanceRequests: [],
-        requests: []
+        balanceRequests: []
     };
 
-    // ----------------------------------------------------
-    // 1. دالة البحث والفلترة المركزية
-    // ----------------------------------------------------
+    // --- أ) دالة البحث والرسم (تُستدعى عند أي تغيير) ---
     const performGlobalSearch = () => {
-        const searchEl = document.getElementById('globalAdminSearch');
-        const term = searchEl ? searchEl.value.toLowerCase().trim() : "";
+        const term = document.getElementById('globalAdminSearch')?.value.toLowerCase().trim() || "";
 
-        // أ) فلترة الانتظار
-        const filteredPending = state.pending.filter(i => {
-            const d = i.data;
-            const fullText = `${d.shopName} ${d.phone} ${d.wilaya} ${d.baladiya} ${d.email}`.toLowerCase();
-            return fullText.includes(term);
-        });
-        renderPending(filteredPending);
-
-        // ب) فلترة الطلبات
-        const filteredOrders = state.orders.filter(i => {
-            const d = i.data;
-            const fullText = `${d.partName} ${d.carMake} ${d.carModel || ''} ${d.phoneNumber} ${d.secretCode || ''} ${d.wilaya || ''}`.toLowerCase();
-            return fullText.includes(term);
-        });
-        renderOrders(filteredOrders);
-
-        // ج) فلترة التجار
-        const filteredSellers = state.sellers.filter(i => {
-            const d = i.data;
-            const fullText = `${d.shopName} ${d.phone} ${d.wilaya} ${d.email}`.toLowerCase();
-            return fullText.includes(term);
-        });
-        renderSellers(filteredSellers);
-
-        // د) فلترة طلبات الرصيد
-        const filteredBalance = state.balanceRequests.filter(i => {
-            const d = i.data;
-            const fullText = `${d.shopName} ${d.phone} ${d.amount}`.toLowerCase();
-            return fullText.includes(term);
-        });
-        renderBalance(filteredBalance);
+        renderPending(state.pending.filter(i => `${i.data.shopName} ${i.data.phone}`.toLowerCase().includes(term)));
+        renderOrders(state.orders.filter(i => `${i.data.partName} ${i.data.carMake}`.toLowerCase().includes(term)));
+        renderSellers(state.sellers.filter(i => `${i.data.shopName} ${i.data.phone}`.toLowerCase().includes(term)));
+        renderBalance(state.balanceRequests.filter(i => `${i.data.shopName} ${i.data.phone} ${i.data.amount}`.toLowerCase().includes(term)));
     };
 
     const searchInput = document.getElementById('globalAdminSearch');
-    if (searchInput) {
-        searchInput.addEventListener('input', performGlobalSearch);
-    }
+    if (searchInput) searchInput.oninput = performGlobalSearch;
 
-    // ----------------------------------------------------
-    // 2. دوال الرسم (Render Functions)
-    // ----------------------------------------------------
+    // --- ب) جلب البيانات (Listeners) ---
 
-    const renderPending = (data) => {
-        const list = document.getElementById('adminPendingList');
-        if (!list) return;
-        list.innerHTML = "";
-        if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10">لا توجد نتائج مطابقة</p>`; return; }
-
-        data.forEach(item => {
-            const d = item.data;
-            const img = d.shopImage || 'https://via.placeholder.com/100';
-            list.innerHTML += `
-            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 flex flex-col sm:flex-row gap-4 items-start sm:items-center animate-slide-up hover:border-yellow-500/30 transition">
-              <img src="${img}" class="w-16 h-16 rounded-xl object-cover border border-gray-600 cursor-zoom-in hover:brightness-110 transition" onclick="openLightbox(this.src)">
-              <div class="flex-1">
-                <h4 class="font-bold text-white text-base">${d.shopName}</h4>
-                <p class="text-xs text-gray-400 mb-0.5">📍 ${d.wilaya} - ${d.baladiya}</p>
-                <p class="text-xs text-blue-400 font-mono tracking-wider">📱 ${d.phone}</p>
-              </div>
-              <div class="flex gap-2 w-full sm:w-auto">
-                <button onclick="adminApproveSeller('${item.id}')" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold py-2 px-4 rounded-xl transition">قبول</button>
-                <button onclick="adminRejectSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold py-2 px-4 rounded-xl transition">رفض</button>
-              </div>
-            </div>`;
-        });
-    };
-
-    const renderBalance = (data) => {
-        const list = document.getElementById('adminBalanceRequestsList');
-        if (!list) return;
-        list.innerHTML = "";
-        if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10 border border-dashed border-gray-800 rounded-2xl">لا توجد طلبات شحن</p>`; return; }
-
-        data.forEach(item => {
-            const r = item.data;
-            const imgHtml = r.receiptImage ? `<div class="mb-2"><img src="${r.receiptImage}" class="h-16 w-auto rounded border border-gray-600 cursor-zoom-in hover:brightness-110 transition" onclick="openLightbox(this.src)"></div>` : ``;
-
-            list.innerHTML += `
-            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 animate-slide-up hover:border-purple-500/30 transition">
-              <div class="flex justify-between items-start">
-                <div>
-                  <p class="font-bold text-white text-sm mb-1">🏪 ${r.shopName}</p>
-                  <p class="text-xs text-gray-400 font-mono mb-2">📱 ${r.phone}</p>
-                  <div class="flex items-center gap-2">
-                    <span class="text-purple-400 font-black text-xl">${r.amount} <span class="text-xs">DA</span></span>
-                    <span class="text-[10px] text-gray-500 bg-gray-900 px-2 py-1 rounded">طلب شحن</span>
-                  </div>
-                </div>
-                ${imgHtml}
-              </div>
-              <div class="flex gap-2 mt-4 pt-3 border-t border-gray-700">
-                <button onclick="adminApproveTopUp('${item.id}', '${r.sellerId}', ${r.amount})" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 rounded-xl transition">✅ تأكيد الشحن</button>
-                <button onclick="adminRejectTopUp('${item.id}')" class="px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold py-2.5 rounded-xl transition">رفض</button>
-              </div>
-            </div>`;
-        });
-    };
-
-    const renderOrders = (data) => {
-        const list = document.getElementById('adminOrdersList');
-        if (!list) return;
-        list.innerHTML = "";
-        if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10">لا توجد نتائج مطابقة</p>`; return; }
-
-        // --- Pagination Logic for Admin ---
-        const itemsToShow = data.slice(0, adminOrdersLimit);
-
-        itemsToShow.forEach(item => {
-            const d = item.data;
-            const imgHtml = d.imageUrl ? `<img src="${d.imageUrl}" class="w-10 h-10 rounded-lg object-cover border border-gray-600 cursor-zoom-in ml-2 hover:brightness-110 transition" onclick="openLightbox(this.src)">` : ``;
-
-            list.innerHTML += `
-            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 flex justify-between items-center hover:border-green-500/30 transition">
-              <div class="flex items-center w-full">
-                ${imgHtml}
-                <div class="flex-1 ml-2">
-                  <p class="font-bold text-sm text-white mb-1">${d.partName}</p>
-                  <div class="flex flex-wrap gap-2">
-                    <span class="text-[10px] text-gray-300 bg-gray-700 px-2 py-0.5 rounded border border-gray-600">${d.carMake} ${d.carModel || ''}</span>
-                    <span class="text-[10px] text-orange-400 font-mono bg-orange-400/10 px-2 py-0.5 rounded">${d.phoneNumber}</span>
-                    <span class="text-[10px] text-gray-500 bg-black/20 px-2 py-0.5 rounded font-mono tracking-widest">Code: ${d.secretCode || '---'}</span>
-                  </div>
-                </div>
-              </div>
-              <button onclick="adminDeleteDoc('orders','${item.id}')" class="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition ml-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-              </button>
-            </div>`;
-        });
-
-        // زر تحميل المزيد للأدمن
-        if (data.length > adminOrdersLimit) {
-            const btn = document.createElement('button');
-            btn.className = "w-full text-center py-2 text-xs text-blue-400 hover:text-blue-300";
-            btn.innerText = "عرض المزيد...";
-            btn.onclick = () => {
-                adminOrdersLimit += 50;
-                // إعادة الرسم بالحد الجديد
-                renderOrders(data);
-            };
-            list.appendChild(btn);
-        }
-    };
-
-    const renderSellers = (data) => {
-        const list = document.getElementById('adminSellersList');
-        if (!list) return;
-        list.innerHTML = "";
-        if (data.length === 0) { list.innerHTML = `<p class="text-center text-gray-600 text-xs py-10">لا توجد نتائج مطابقة</p>`; return; }
-
-        data.forEach(item => {
-            const d = item.data;
-            list.innerHTML += `
-            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 hover:border-blue-500/30 transition">
-              <div class="flex justify-between items-start mb-2">
-                <div>
-                  <p class="font-bold text-white text-base">${d.shopName}</p>
-                  <p class="text-xs text-gray-400">📍 ${d.wilaya || '--'}</p>
-                </div>
-                <span class="${d.isBlocked ? 'text-red-400 bg-red-400/10 border-red-400/20' : 'text-green-400 bg-green-400/10 border-green-400/20'} text-[10px] px-2 py-1 rounded border font-bold">
-                  ${d.isBlocked ? 'محظور' : 'نشط'}
-                </span>
-              </div>
-              
-              <div class="flex items-center justify-between bg-gray-900/50 p-2 rounded-xl mb-3">
-                <span class="text-xs text-gray-400 font-mono">${d.phone}</span>
-                <span class="text-yellow-500 font-bold text-sm">${d.balance} DA</span>
-              </div>
-              
-              <div class="flex gap-2">
-                <button onclick="adminToggleBlock('${item.id}', ${d.isBlocked})" class="flex-1 bg-gray-700 hover:bg-gray-600 text-[10px] py-2 rounded-lg text-white transition">${d.isBlocked ? 'فك الحظر' : 'حظر'}</button>
-                <button onclick="adminAddBalance('${item.id}')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-[10px] py-2 rounded-lg text-white font-bold transition">+ رصيد يدوي</button>
-                <button onclick="adminDeleteSeller('${item.id}')" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[10px] py-2 rounded-lg transition">حذف</button>
-              </div>
-            </div>`;
-        });
-    };
-
-    // ----------------------------------------------------
-    // 3. جلب البيانات (Listeners)
-    // ----------------------------------------------------
-
-    // أ) جلب الانتظار
+    // 1. التجار في انتظار القبول
     onSnapshot(query(collection(db, "sellers"), where("isVerified", "==", false)), (snap) => {
         const el = document.getElementById('statPending'); if (el) el.innerText = snap.size;
         state.pending = snap.docs.map(d => ({ id: d.id, data: d.data() }));
         performGlobalSearch();
     });
 
-    // ب) جلب الطلبات (Active Only)
+    // 2. الطلبات النشطة
     onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snap) => {
-        const activeOrders = snap.docs
-            .map(d => ({ id: d.id, data: d.data() }))
-            .filter(item => item.data.status !== 'sold');
-
-        const el = document.getElementById('statOrders');
-        if (el) el.innerText = activeOrders.length;
-
-        state.orders = activeOrders;
+        const activeOnes = snap.docs.map(d => ({ id: d.id, data: d.data() })).filter(i => i.data.status !== 'sold');
+        const el = document.getElementById('statOrders'); if (el) el.innerText = activeOnes.length;
+        state.orders = activeOnes;
         performGlobalSearch();
     });
 
-    // ج) جلب التجار النشطين
+    // 3. التجار النشطون
     onSnapshot(collection(db, "sellers"), (snap) => {
-        const verifiedSellers = snap.docs.filter(d => d.data().isVerified === true);
-        const el = document.getElementById('statSellers'); if (el) el.innerText = verifiedSellers.length;
-
-        state.sellers = snap.docs
-            .map(d => ({ id: d.id, data: d.data() }))
-            .filter(item => item.data.isVerified === true);
-
+        const verified = snap.docs.filter(d => d.data().isVerified === true);
+        const el = document.getElementById('statSellers'); if (el) el.innerText = verified.length;
+        state.sellers = verified.map(d => ({ id: d.id, data: d.data() }));
         performGlobalSearch();
     });
 
-    // د) جلب طلبات الشحن (Balance)
+    // 4. طلبات الشحن
     onSnapshot(query(collection(db, "balance_requests"), where("status", "==", "pending")), (snap) => {
         const el = document.getElementById('statBalance'); if (el) el.innerText = snap.size;
         state.balanceRequests = snap.docs.map(d => ({ id: d.id, data: d.data() }));
         performGlobalSearch();
     });
 
-    // ============================================================
-    // تنظيف تلقائي شامل (طلبات، مبيعات، عروض، وطلبات شحن) بعد 30 يوم
-    // ============================================================
-    async function systemAutoCleanup() {
-        // تحديد الفترة الزمنية (30 يوماً)
+    // --- ج) دوال الرندر (Render) ---
+
+    const renderPending = (data) => {
+        const list = document.getElementById('adminPendingList'); if (!list) return;
+        list.innerHTML = data.length ? "" : "<p class='text-center text-xs text-gray-500 py-10'>لا توجد طلبات معلقة</p>";
+        data.forEach(item => {
+            list.innerHTML += `
+            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 flex flex-col sm:flex-row gap-4 items-center mb-3">
+              <img src="${item.data.shopImage || 'https://via.placeholder.com/100'}" class="w-16 h-16 rounded-xl object-cover border border-gray-600" onclick="openLightbox(this.src)">
+              <div class="flex-1 text-center sm:text-right">
+                <h4 class="font-bold text-white text-base">${item.data.shopName}</h4>
+                <p class="text-xs text-blue-400 font-mono">📱 ${item.data.phone} | 📍 ${item.data.wilaya}</p>
+              </div>
+              <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="adminApproveSeller('${item.id}')" class="flex-1 bg-green-600 text-white text-[10px] font-bold py-2 px-4 rounded-xl">قبول</button>
+                <button onclick="adminRejectSeller('${item.id}')" class="flex-1 bg-red-500/10 text-red-400 border border-red-500/30 text-[10px] font-bold py-2 px-4 rounded-xl">رفض</button>
+              </div>
+            </div>`;
+        });
+    };
+
+    const renderOrders = (data) => {
+        const list = document.getElementById('adminOrdersList'); if (!list) return;
+        list.innerHTML = "";
+        data.slice(0, adminOrdersLimit).forEach(item => {
+            const d = item.data;
+            list.innerHTML += `
+            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3 flex justify-between items-center">
+              <div class="flex items-center gap-3">
+                ${d.imageUrl ? `<img src="${d.imageUrl}" class="w-10 h-10 rounded-lg object-cover" onclick="openLightbox(this.src)">` : ''}
+                <div>
+                  <p class="font-bold text-sm text-white">${d.partName}</p>
+                  <p class="text-[10px] text-gray-400 font-mono">${d.phoneNumber}</p>
+                </div>
+              </div>
+              <button onclick="adminDeleteDoc('orders','${item.id}')" class="text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            </div>`;
+        });
+    };
+
+    const renderSellers = (data) => {
+        const list = document.getElementById('adminSellersList'); if (!list) return;
+        list.innerHTML = "";
+        data.forEach(item => {
+            const d = item.data;
+            list.innerHTML += `
+            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3">
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="font-bold text-white text-base">${d.shopName}</h4>
+                <span class="${d.isBlocked ? 'text-red-400 bg-red-400/10' : 'text-green-400 bg-green-400/10'} text-[10px] px-2 py-1 rounded border border-current font-bold">
+                  ${d.isBlocked ? 'محظور' : 'نشط'}
+                </span>
+              </div>
+              <p class="text-yellow-500 font-bold text-sm mb-3">${d.balance || 0} DA</p>
+              <div class="flex gap-2">
+                <button onclick="adminToggleBlock('${item.id}', ${d.isBlocked})" class="flex-1 bg-gray-700 text-[10px] py-2 rounded-lg text-white">${d.isBlocked ? 'فك الحظر' : 'حظر'}</button>
+                <button onclick="adminAddBalance('${item.id}')" class="flex-1 bg-blue-600 text-[10px] py-2 rounded-lg text-white">+ رصيد</button>
+                <button onclick="adminDeleteSeller('${item.id}')" class="flex-1 bg-red-500/10 text-red-400 text-[10px] py-2 rounded-lg">حذف</button>
+              </div>
+            </div>`;
+        });
+    };
+
+    const renderBalance = (data) => {
+        const list = document.getElementById('adminBalanceRequestsList'); if (!list) return;
+        list.innerHTML = data.length ? "" : "<p class='text-center text-gray-500 text-xs py-10'>لا توجد طلبات شحن</p>";
+        data.forEach(item => {
+            const r = item.data;
+            list.innerHTML += `
+            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3">
+              <p class="font-bold text-white text-sm">🏪 ${r.shopName}</p>
+              <p class="text-purple-400 font-black text-xl my-1">${r.amount} DA</p>
+              ${r.receiptImage ? `<img src="${r.receiptImage}" class="h-16 w-auto rounded my-2 border border-gray-600" onclick="openLightbox(this.src)">` : ''}
+              <div class="flex gap-2 mt-3">
+                <button onclick="adminApproveTopUp('${item.id}', '${r.sellerId}', ${r.amount})" class="flex-1 bg-green-600 text-white text-xs font-bold py-2 rounded-xl transition">تأكيد</button>
+                <button onclick="adminRejectTopUp('${item.id}')" class="px-4 bg-red-500/10 text-red-400 border border-red-500/30 text-xs font-bold py-2 rounded-xl">رفض</button>
+              </div>
+            </div>`;
+        });
+    };
+
+    // التنظيف التلقائي
+    (async function systemAutoCleanup() {
         const THIRTY_DAYS_AGO = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
-        
+        const colls = ["orders", "sales", "balance_requests", "offers"];
         try {
-            console.log("Starting System Cleanup (Deleting data older than 30 days)...");
-
-            // 1. حذف الطلبات القديمة (Orders)
-            // ملاحظة: هذا يحذف الصور تلقائياً لأنها مخزنة كـ Base64 داخل المستند
-            const oldOrders = await getDocs(query(collection(db, "orders"), where("createdAt", "<", THIRTY_DAYS_AGO)));
-            oldOrders.forEach(async (d) => { await deleteDoc(d.ref); });
-
-            // 2. حذف المبيعات القديمة (Sales)
-            const oldSales = await getDocs(query(collection(db, "sales"), where("soldAt", "<", THIRTY_DAYS_AGO)));
-            oldSales.forEach(async (d) => { await deleteDoc(d.ref); });
-
-            // 3. حذف طلبات الشحن القديمة (Balance Requests) - يشمل صور الوصولات
-            const oldRequests = await getDocs(query(collection(db, "balance_requests"), where("createdAt", "<", THIRTY_DAYS_AGO)));
-            oldRequests.forEach(async (d) => { await deleteDoc(d.ref); });
-
-            // 4. حذف العروض القديمة (Offers) - يشمل صور القطع المعروضة
-            const oldOffers = await getDocs(query(collection(db, "offers"), where("createdAt", "<", THIRTY_DAYS_AGO)));
-            oldOffers.forEach(async (d) => { await deleteDoc(d.ref); });
-
-            if (!oldOrders.empty || !oldSales.empty || !oldRequests.empty || !oldOffers.empty) {
-                console.log(`Cleanup Report: 
-                - Deleted Orders: ${oldOrders.size}
-                - Deleted Sales: ${oldSales.size}
-                - Deleted Requests: ${oldRequests.size}
-                - Deleted Offers: ${oldOffers.size}`);
+            for (const c of colls) {
+                const old = await getDocs(query(collection(db, c), where("createdAt", "<", THIRTY_DAYS_AGO)));
+                old.forEach(async (d) => { await deleteDoc(d.ref); });
             }
-        } catch (e) { console.error("Cleanup error:", e); }
-    }
-    systemAutoCleanup();
+        } catch (e) {}
+    })();
 }
 
-// --- دوال التحكم للأدمن ---
-window.adminDeleteDoc = async (c, i) => { if (confirm("حذف؟")) await deleteDoc(doc(db, c, i)); };
+// 5. وظائف التحكم العالمية (متاحة للـ HTML)
+window.adminDeleteDoc = async (c, i) => { if (confirm("حذف المستند نهائياً؟")) await deleteDoc(doc(db, c, i)); };
 window.adminToggleBlock = async (id, status) => { await updateDoc(doc(db, "sellers", id), { isBlocked: !status }); };
-window.adminAddBalance = async (id) => { const a = prompt("المبلغ:"); if (a) await updateDoc(doc(db, "sellers", id), { balance: increment(parseInt(a)) }); };
-
-window.adminDeleteSeller = async (id) => {
-    if (!confirm("حذف نهائي؟")) return;
-    const q = query(collection(db, "offers"), where("sellerId", "==", id));
-    const snap = await getDocs(q);
-    const batch = writeBatch(db);
-    snap.forEach((doc) => { batch.delete(doc.ref); });
-    batch.delete(doc(db, "sellers", id));
-    await batch.commit();
-};
+window.adminAddBalance = async (id) => { const a = prompt("المبلغ المراد إضافته:"); if (a) await updateDoc(doc(db, "sellers", id), { balance: increment(parseInt(a)) }); };
 
 window.adminApproveSeller = async (id) => {
-    if (!confirm("قبول؟")) return;
-    await updateDoc(doc(db, "sellers", id), { isVerified: true });
+    if (confirm("قبول وتفعيل هذا التاجر؟")) {
+        await updateDoc(doc(db, "sellers", id), { isVerified: true, balance: 1500 }); // إعطاؤه رصيد ترحيبي مثلاً
+    }
 };
 
 window.adminRejectSeller = async (id) => {
-    if (!confirm("رفض؟")) return;
-    await deleteDoc(doc(db, "sellers", id));
+    if (confirm("رفض وحذف الطلب؟")) await deleteDoc(doc(db, "sellers", id));
 };
 
 window.adminApproveTopUp = async (reqId, sellerId, amount) => {
-    if (!confirm("تأكيد الشحن؟")) return;
+    if (!confirm("تأكيد شحن الرصيد؟")) return;
     const batch = writeBatch(db);
     batch.update(doc(db, "balance_requests", reqId), { status: 'approved', processedAt: serverTimestamp() });
     batch.update(doc(db, "sellers", sellerId), { balance: increment(amount) });
     await batch.commit();
-    alert("تم الشحن");
+    alert("تم الشحن بنجاح");
 };
 
-window.adminRejectTopUp = async (reqId) => {
-    if (!confirm("رفض الطلب؟")) return;
-    await updateDoc(doc(db, "balance_requests", reqId), { status: 'rejected', processedAt: serverTimestamp() });
-    alert("تم الرفض");
+window.adminRejectTopUp = async (id) => {
+    if (confirm("رفض الطلب؟")) await updateDoc(doc(db, "balance_requests", id), { status: 'rejected' });
 };
 
-// ============================================================
-// FIX: إجبار المتصفح على إخفاء نافذة الدخول عند وجود تسجيل سابق
-// ============================================================
-setInterval(() => {
-    // التحقق كل ثانية للتأكد من أن الواجهة صحيحة
-    const isAdmin = localStorage.getItem('adminLoggedIn') === 'true';
-    const loginScreen = document.getElementById('adminLoginScreen');
-    const dashboard = document.getElementById('adminDashboard');
-
-    // إذا لم نكن في صفحة الأدمن أصلاً (loginScreen و dashboard غير موجودين) لا تفعل شيئاً
-    if (!loginScreen || !dashboard) return;
-
-    if (isAdmin) {
-        // إذا كان مسجلاً: أخفِ الدخول بقوة وأظهر اللوحة
-        if (loginScreen.style.display !== 'none') {
-            loginScreen.style.setProperty('display', 'none', 'important');
-            loginScreen.classList.add('hidden');
-        }
-        if (dashboard.classList.contains('hidden') || dashboard.style.display === 'none') {
-            dashboard.style.display = 'flex'; // استخدام flex لأن التصميم يعتمد عليه
-            dashboard.classList.remove('hidden');
-            // تشغيل لوحة التحكم إذا لم تكن تعمل
-            if (typeof initAdminPanel === 'function') initAdminPanel();
-        }
-    } else {
-        // إذا لم يكن مسجلاً: أظهر الدخول وأخفِ اللوحة
-        if (dashboard.style.display !== 'none') {
-            dashboard.style.display = 'none';
-            dashboard.classList.add('hidden');
-        }
-        if (loginScreen.classList.contains('hidden') || loginScreen.style.display === 'none') {
-            loginScreen.style.display = 'flex';
-            loginScreen.classList.remove('hidden');
-        }
-    }
-}, 1000); // يفحص كل ثانية
+window.adminDeleteSeller = async (id) => {
+    if (!confirm("⚠️ حذف التاجر وكل عروضه نهائياً؟")) return;
+    const q = query(collection(db, "offers"), where("sellerId", "==", id));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.forEach(d => batch.delete(d.ref));
+    batch.delete(doc(db, "sellers", id));
+    await batch.commit();
+};
