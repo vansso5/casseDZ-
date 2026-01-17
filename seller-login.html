@@ -24,7 +24,14 @@
     <!-- الهيدر -->
     <header class="glass fixed top-0 w-full z-50">
         <div class="max-w-lg mx-auto px-4 py-3 flex justify-between items-center">
+            <!-- زر الرجوع -->
+            <a href="index.html" class="flex items-center gap-2 group">
+                <div class="bg-gray-800 p-2 rounded-xl group-hover:bg-gray-700 transition border border-gray-700">
+                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m7 7l-7-7 7-7"></path></svg>
+                </div>
+            </a>
             <h1 class="text-lg font-bold tracking-tight">تسجيل <span class="text-orange-500">الدخول</span></h1>
+            <div class="w-10"></div>
         </div>
     </header>
 
@@ -92,10 +99,26 @@
                 <label class="text-xs text-gray-400">كلمة سر جديدة</label>
                 <input type="password" id="regPassword" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500">
             </div>
-            <div class="bg-gray-900/50 p-3 rounded-lg border border-dashed border-gray-600">
-                <label class="text-xs font-bold text-orange-400 mb-2 block">صورة واجهة المحل ( اجباري )</label>
-                <input type="file" id="regShopImage" accept="image/*" class="block w-full text-xs text-gray-400 file:mr-0 file:ml-2 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600 cursor-pointer"/>
+            
+            <!-- 🔥🔥 المنطقة المحسنة لرفع الصور مع المعاينة 🔥🔥 -->
+            <div class="mb-2">
+                <label class="text-xs font-bold text-gray-400 mb-2 block">صورة واجهة المحل ( إجباري )</label>
+                <label for="regShopImage" class="relative flex flex-col items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-900/50 hover:bg-gray-800 hover:border-orange-500 transition-all group overflow-hidden">
+                    
+                    <!-- الحالة الافتراضية: أيقونة ونص -->
+                    <div id="uploadPlaceholder" class="flex flex-col items-center justify-center pt-5 pb-6 transition-opacity duration-300">
+                        <svg class="w-8 h-8 mb-2 text-gray-500 group-hover:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <p class="text-xs text-gray-400"><span class="font-bold">اضغط هنا</span> لاختيار صورة</p>
+                    </div>
+
+                    <!-- معاينة الصورة (مخفية افتراضياً) -->
+                    <img id="imagePreview" class="hidden absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="معاينة">
+                    
+                    <!-- المدخل الفعلي (مخفي) -->
+                    <input id="regShopImage" type="file" accept="image/*" class="hidden" />
+                </label>
             </div>
+            
             <button type="button" id="btnRegister" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl border border-gray-500 mt-2">
                 إنشاء حساب (+1500 دج)
             </button>
@@ -142,6 +165,24 @@
 
         function openForgotModal() { document.getElementById('forgotModal').classList.remove('hidden'); }
         function closeForgotModal() { document.getElementById('forgotModal').classList.add('hidden'); }
+
+        // 🔥 كود معاينة الصورة الجديد 🔥
+        const fileInput = document.getElementById('regShopImage');
+        const preview = document.getElementById('imagePreview');
+        const placeholder = document.getElementById('uploadPlaceholder');
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
     </script>
 
     <!-- ========================================== -->
@@ -221,7 +262,7 @@
         };
 
         // ==========================================
-        // 1. مراقب الدخول (المنطق المصحح)
+        // 1. مراقب الدخول
         // ==========================================
         onAuthStateChanged(auth, async (user) => {
             if (isRegistering) return;
@@ -234,18 +275,14 @@
                         const data = docSnap.data();
                         
                         // 🔥 التصحيح هنا: نعتمد على isVerified فقط
-                        // إذا كان الحساب محظوراً
                         if (data.isBlocked === true) {
                              await signOut(auth);
                              showToast("⛔ تم حظر هذا الحساب.", "error");
                         } 
-                        // إذا كان الحساب مفعلاً (حتى لو كانت الحالة pending خطأً من الأدمن)
                         else if (data.isVerified === true) {
-                            // تخزين الـ ID في اللوكال لضمان عمل الداشبورد
                             localStorage.setItem('sellerId', user.uid);
                             window.location.href = "dash.html";
                         } 
-                        // إذا لم يكن مفعلاً
                         else {
                             await signOut(auth);
                             showToast("⏳ حسابك قيد المراجعة من الإدارة. يرجى الانتظار.", "error");
@@ -275,7 +312,6 @@
             try {
                 await setPersistence(auth, browserLocalPersistence);
                 await signInWithEmailAndPassword(auth, email, password);
-                // المراقب سيتولى الباقي
             } catch (error) {
                 console.error(error);
                 showToast("خطأ في المعلومات أو كلمة السر", "error");
