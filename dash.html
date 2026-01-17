@@ -144,6 +144,10 @@
             <div class="h-72 bg-slate-100 flex items-center justify-center relative">
                 <img id="detailImage" src="" class="h-full w-full object-cover hidden cursor-zoom-in" onclick="openLightbox(this.src)">
                 <div id="noImageText" class="text-gray-400 font-bold text-xs uppercase tracking-widest">لا توجد صورة</div>
+                <!-- Sold Overlay for Image -->
+                <div id="detailSoldOverlay" class="absolute inset-0 bg-black/50 hidden flex items-center justify-center">
+                    <span class="text-white font-black text-3xl border-4 border-white p-2 rounded transform -rotate-12">مُباع</span>
+                </div>
             </div>
             <div class="p-8">
                 <h2 id="detailPartName" class="text-2xl font-black text-gray-900 leading-tight">...</h2>
@@ -152,7 +156,13 @@
                     <p class="text-[9px] font-black text-orange-600 uppercase mb-2 tracking-widest">ملاحظات الزبون:</p>
                     <p id="detailNotes" class="text-sm text-gray-700 leading-relaxed font-medium">...</p>
                 </div>
+                
                 <button id="btnOpenOffer" class="w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-orange-100 active:scale-[0.97] transition-all">تقديم عرض سعر</button>
+                
+                <!-- رسالة مغلق -->
+                <div id="msgOrderClosed" class="hidden w-full bg-gray-200 text-gray-500 py-5 rounded-2xl font-black text-center text-sm cursor-not-allowed">
+                    ⛔ هذا الطلب مغلق (تم البيع)
+                </div>
             </div>
         </div>
     </div>
@@ -315,36 +325,86 @@
             }
         });
 
-        // 2. جلب الطلبات
+        // 2. جلب الطلبات (معدلة لعرض المباع لمدة 4 ساعات)
         function startListeningOrders() {
             const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+            
             onSnapshot(q, (snapshot) => {
                 const list = document.getElementById('ordersList');
                 list.innerHTML = "";
                 let count = 0;
-                if (snapshot.empty) { list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لا توجد طلبات حالياً</p>`; return; }
+                
+                if (snapshot.empty) { 
+                    list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لا توجد طلبات حالياً</p>`; 
+                    return; 
+                }
+
+                const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+                const now = new Date();
+
                 snapshot.forEach((doc) => {
                     const order = doc.data();
-                    if (order.status === 'sold') return;
+                    let isSoldRecently = false;
+
+                    // --- منطق الـ 4 ساعات للمباع ---
+                    if (order.status === 'sold') {
+                        if (order.soldAt) {
+                            const soldTime = order.soldAt.toDate();
+                            const timeDiff = now - soldTime;
+                            
+                            // إذا مر أقل من 4 ساعات، اعتبره "مباع مؤخراً" واعرضه
+                            if (timeDiff < FOUR_HOURS_MS) {
+                                isSoldRecently = true;
+                            } else {
+                                // مر أكثر من 4 ساعات، إخفاء
+                                return;
+                            }
+                        } else {
+                            // مباع بدون تاريخ، إخفاء افتراضي
+                            return;
+                        }
+                    }
+                    // -----------------------------
+
+                    // إخفاء ما قدمت عليه عرضاً (إلا إذا كنت تريد رؤية المباع أيضاً، هنا سنخفيه إذا كان لي عرض عليه)
                     if (myOfferedOrderIds.has(doc.id)) return; 
+
                     count++;
+                    
+                    // تنسيق الكارت بناءً على الحالة
+                    const cardOpacity = isSoldRecently ? "opacity-75 bg-gray-100" : "bg-white";
+                    const borderStyle = isSoldRecently ? "border-gray-200" : "border-gray-100 hover:border-orange-200";
+                    const statusBadge = isSoldRecently 
+                        ? `<span class="bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg ml-2 shadow-sm">❌ تم البيع</span>` 
+                        : `<span class="bg-gray-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg">معاينة</span>`;
+                    
+                    const sideColor = isSoldRecently ? "bg-gray-400" : "bg-orange-500";
+                    
                     const item = document.createElement('div');
-                    item.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:border-orange-200 transition cursor-pointer mb-3";
+                    item.className = `${cardOpacity} p-5 rounded-2xl shadow-sm border ${borderStyle} relative overflow-hidden group transition cursor-pointer mb-3`;
+                    
+                    // عند النقر نفتح المودال ونمرر الـ ID والداتا
                     item.onclick = () => openDetailsModal(doc.id, order);
+
                     item.innerHTML = `
-                        <div class="absolute top-0 right-0 w-1.5 h-full bg-orange-500 rounded-l-full"></div>
+                        <div class="absolute top-0 right-0 w-1.5 h-full ${sideColor} rounded-l-full"></div>
                         <div class="flex justify-between items-start mb-2 pl-2">
-                            <div>
-                                <h3 class="font-bold text-gray-800 text-lg">${order.partName}</h3>
-                                <p class="text-[10px] text-gray-500 font-bold bg-gray-100 px-2 py-1 rounded w-fit mt-1">
+                            <div class="${isSoldRecently ? 'grayscale' : ''}">
+                                <h3 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+                                    ${order.partName}
+                                    ${isSoldRecently ? '<span class="text-[8px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded border border-gray-300">مغلق</span>' : ''}
+                                </h3>
+                                <p class="text-[10px] text-gray-500 font-bold bg-white/50 border border-gray-100 px-2 py-1 rounded w-fit mt-1">
                                     ${order.carMake} ${order.carModel || ''} ${order.carYear || ''}
                                 </p>
                             </div>
-                            <span class="text-[9px] text-gray-400 font-mono">${timeAgo(order.createdAt)}</span>
+                            <span class="text-[9px] text-gray-400 font-mono text-left">
+                                ${isSoldRecently && order.soldAt ? 'بيع ' + timeAgo(order.soldAt) : timeAgo(order.createdAt)}
+                            </span>
                         </div>
                         <div class="flex justify-between items-end mt-4">
-                            <p class="text-[10px] text-gray-400 flex items-center gap-1">📍 ${getWilayaName(order.wilaya)}</p>
-                            <span class="bg-gray-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg">معاينة</span>
+                            <p class="text-[10px] text-gray-400 flex items-center gap-1 ${isSoldRecently ? 'grayscale' : ''}">📍 ${getWilayaName(order.wilaya)}</p>
+                            ${statusBadge}
                         </div>
                     `;
                     list.appendChild(item);
@@ -405,18 +465,35 @@
             document.getElementById('detailPartName').innerText = data.partName;
             document.getElementById('detailCarInfo').innerText = `${data.carMake} ${data.carModel || ''} ${data.carYear || ''}`;
             document.getElementById('detailNotes').innerText = data.notes || "لا توجد ملاحظات";
+            
             const img = document.getElementById('detailImage');
             const txt = document.getElementById('noImageText');
+            
             if(data.imageUrl && data.imageUrl.length > 20) {
                 img.src = data.imageUrl;
                 img.classList.remove('hidden');
                 txt.classList.add('hidden');
-                // 🔥 استخدام الدالة الجديدة للفتح 🔥
                 img.onclick = () => openLightbox(data.imageUrl);
             } else {
                 img.classList.add('hidden');
                 txt.classList.remove('hidden');
             }
+
+            // التعامل مع الحالة إذا كان مباعاً (sold)
+            const btnOffer = document.getElementById('btnOpenOffer');
+            const msgClosed = document.getElementById('msgOrderClosed');
+            const soldOverlay = document.getElementById('detailSoldOverlay');
+
+            if (data.status === 'sold') {
+                btnOffer.classList.add('hidden');      // إخفاء زر العرض
+                msgClosed.classList.remove('hidden');  // إظهار رسالة مغلق
+                soldOverlay.classList.remove('hidden');// إظهار "مباع" فوق الصورة
+            } else {
+                btnOffer.classList.remove('hidden');   // إظهار زر العرض
+                msgClosed.classList.add('hidden');     // إخفاء رسالة مغلق
+                soldOverlay.classList.add('hidden');   // إخفاء "مباع"
+            }
+
             document.getElementById('detailsModal').classList.remove('hidden');
         };
 
