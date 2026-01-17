@@ -210,7 +210,7 @@
     </script>
 
     <!-- ========================================== -->
-    <!-- كود FIREBASE والمنطق (تم دمج معلوماتك هنا) -->
+    <!-- كود FIREBASE (المنطق القديم + الحماية من التكرار) -->
     <!-- ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -221,12 +221,13 @@
             sendPasswordResetEmail,
             onAuthStateChanged,
             setPersistence,        
-            browserLocalPersistence 
+            browserLocalPersistence,
+            signOut 
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // ✅✅✅ تم وضع معلوماتك الصحيحة هنا ✅✅✅
+        // معلومات مشروعك كما هي
         const firebaseConfig = {
           apiKey: "AIzaSyDLNY-Uya4tpZSplAqhpsmxgOrwlQMFODI",
           authDomain: "casse-auto-8ef9a.firebaseapp.com",
@@ -237,13 +238,11 @@
           appId: "1:257994887284:web:16e6006f68520fbbc94121"
         };
 
-        // تهيئة التطبيق
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // دالة لعرض التنبيهات
         function showToast(msg, type = "success") {
             Toastify({
                 text: msg,
@@ -259,18 +258,37 @@
         }
 
         // ==========================================
-        // 1. مراقب حالة الدخول (للدخول التلقائي)
+        // 1. مراقب حالة الدخول (يفحص الحالة قبل الدخول)
         // ==========================================
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                console.log("المستخدم مسجل مسبقاً، جارِ التحويل...");
-                // تحويل مباشر لصفحة لوحة التحكم
-                window.location.href = "dash.html"; 
+                // فحص حالة الحساب في قاعدة البيانات
+                const docRef = doc(db, "sellers", user.uid);
+                try {
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        
+                        // هنا نطبق "قانون الكود القديم"
+                        if (data.status === 'pending') {
+                            await signOut(auth); // يخرجه فوراً
+                            showToast("حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار.", "error");
+                        } else if (data.status === 'active') {
+                            // فقط إذا كان active يذهب للداشبورد
+                            window.location.href = "dash.html"; 
+                        } else if (data.status === 'banned') {
+                             await signOut(auth);
+                             showToast("تم حظر هذا الحساب.", "error");
+                        }
+                    }
+                } catch (error) {
+                    console.error("خطأ في جلب البيانات:", error);
+                }
             }
         });
 
         // ==========================================
-        // 2. دالة تسجيل الدخول (مع إصلاح الحفظ)
+        // 2. دالة تسجيل الدخول
         // ==========================================
         const loginBtn = document.getElementById('sellerLoginBtn');
         loginBtn.addEventListener('click', async () => {
@@ -286,20 +304,13 @@
             loginBtn.disabled = true;
 
             try {
-                // إجبار المتصفح على حفظ الجلسة محلياً
                 await setPersistence(auth, browserLocalPersistence);
-                
-                // ثم محاولة الدخول
                 await signInWithEmailAndPassword(auth, email, password);
-                
-                showToast("تم تسجيل الدخول بنجاح!");
-
+                // التوجيه سيتم تلقائياً عبر المراقب أعلاه
             } catch (error) {
                 console.error(error);
                 let msg = "خطأ في الدخول";
                 if(error.code === 'auth/invalid-credential') msg = "البريد أو كلمة السر خطأ";
-                if(error.code === 'auth/user-not-found') msg = "هذا الحساب غير موجود";
-                if(error.code === 'auth/wrong-password') msg = "كلمة السر غير صحيحة";
                 
                 showToast(msg, "error");
                 loginBtn.innerHTML = "تسجيل الدخول";
@@ -308,7 +319,7 @@
         });
 
         // ==========================================
-        // 3. دالة إنشاء حساب جديد
+        // 3. دالة إنشاء حساب جديد (تجعل الحالة pending)
         // ==========================================
         const regBtn = document.getElementById('btnRegister');
         regBtn.addEventListener('click', async () => {
@@ -320,7 +331,6 @@
             const baladiya = document.getElementById('regBaladiya').value;
             const fileInput = document.getElementById('regShopImage');
 
-            // التحقق من المدخلات
             if (!email || !password || !shopName || !phone || !wilaya || !fileInput.files[0]) {
                 showToast("يرجى ملء جميع البيانات وصورة المحل", "error");
                 return;
@@ -330,17 +340,15 @@
             regBtn.disabled = true;
 
             try {
-                // إنشاء الحساب
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // رفع الصورة
                 const file = fileInput.files[0];
                 const storageRef = ref(storage, `shops/${user.uid}/${file.name}`);
                 await uploadBytes(storageRef, file);
                 const imageUrl = await getDownloadURL(storageRef);
 
-                // حفظ البيانات في Firestore
+                // ✅ هنا "قانون الكود القديم": الحالة pending ✅
                 await setDoc(doc(db, "sellers", user.uid), {
                     shopName: shopName,
                     email: email,
@@ -348,19 +356,26 @@
                     wilaya: wilaya,
                     baladiya: baladiya,
                     imageUrl: imageUrl,
-                    balance: 1500, // الرصيد المجاني
+                    balance: 1500,
                     createdAt: new Date(),
-                    status: "active"
+                    status: "pending" // 👈 الحساب ينتظر الموافقة
                 });
 
-                showToast("تم إنشاء الحساب بنجاح! مبروك 1500دج");
-                // التوجيه سيتم تلقائياً
+                showToast("تم إنشاء الحساب! بانتظار موافقة الإدارة.", "success");
+                
+                // نقوم بتسجيل الخروج فوراً حتى لا يدخل
+                await signOut(auth);
+
+                setTimeout(() => {
+                    regBtn.innerHTML = "إنشاء حساب (+1500 دج)";
+                    regBtn.disabled = false;
+                    showLogin(); // العودة لواجهة الدخول
+                }, 2000);
 
             } catch (error) {
                 console.error(error);
-                let msg = "خطأ في التسجيل: " + error.message;
+                let msg = "خطأ: " + error.message;
                 if(error.code === 'auth/email-already-in-use') msg = "البريد الإلكتروني مسجل بالفعل";
-                if(error.code === 'auth/weak-password') msg = "كلمة السر ضعيفة جداً";
                 
                 showToast(msg, "error");
                 regBtn.innerHTML = "إنشاء حساب (+1500 دج)";
@@ -377,13 +392,12 @@
                 showToast("أدخل البريد الإلكتروني أولاً", "error");
                 return;
             }
-
             try {
                 await sendPasswordResetEmail(auth, email);
-                showToast("تم إرسال رابط الاسترجاع إلى بريدك", "success");
+                showToast("تم الإرسال", "success");
                 closeForgotModal();
             } catch (error) {
-                showToast("خطأ: تأكد من صحة البريد الإلكتروني", "error");
+                showToast("خطأ في البريد", "error");
             }
         });
 
