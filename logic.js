@@ -1570,30 +1570,48 @@ function initAdminPanel() {
     };
 
     const renderBalance = (data) => {
-        const list = document.getElementById('adminBalanceRequestsList'); if (!list) return;
-        list.innerHTML = data.length ? "" : "<p class='text-center text-gray-500 text-xs py-10'>لا توجد طلبات شحن</p>";
-        data.forEach(item => {
-            const r = item.data;
-            list.innerHTML += `
-            <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3">
-              <p class="font-bold text-white text-sm">🏪 ${r.shopName}</p>
-              
-              <!-- 👇 هنا التعديل الصحيح: إضافة الرقم وإغلاق الـ Div بشكل سليم -->
-              <div class="flex items-center gap-1 mt-1">
-                  <span class="text-gray-500 text-[10px]">رقم الحساب:</span>
-                  <span class="text-orange-400 font-mono text-sm font-bold tracking-wider" dir="ltr">${r.phone || 'غير متوفر'}</span>
-              </div>
-              <!-- 👆 نهاية التعديل -->
+const list = document.getElementById('adminBalanceRequestsList'); if (!list) return;
+list.innerHTML = data.length ? "" : "<p class='text-center text-gray-500 text-xs py-10'>لا توجد طلبات شحن</p>";
+data.forEach(item => {
+const r = item.data;
 
-              <p class="text-purple-400 font-black text-xl my-1">${r.amount} DA</p>
-              ${r.receiptImage ? `<img src="${r.receiptImage}" class="h-16 w-auto rounded my-2 border border-gray-600" onclick="openLightbox(this.src)">` : ''}
-              <div class="flex gap-2 mt-3">
-                <button onclick="adminApproveTopUp('${item.id}', '${r.sellerId}', ${r.amount})" class="flex-1 bg-green-600 text-white text-xs font-bold py-2 rounded-xl transition">تأكيد</button>
-                <button onclick="adminRejectTopUp('${item.id}')" class="px-4 bg-red-500/10 text-red-400 border border-red-500/30 text-xs font-bold py-2 rounded-xl">رفض</button>
-              </div>
-            </div>`;
-        });
-    };
+// 🔥 تصحيح ذكي: البحث عن الرقم في بيانات التاجر الحية إذا لم يكن مخزناً في الطلب القديم
+let displayPhone = r.phone;
+
+// إذا كان الرقم غير موجود في الطلب (لأن الطلب قديم)، نبحث عنه في قائمة التجار
+if (!displayPhone && state.sellers) {
+const sellerFound = state.sellers.find(s => s.id === r.sellerId);
+if (sellerFound) {
+displayPhone = sellerFound.data.phone;
+}
+}
+
+list.innerHTML += `
+<div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3">
+  <div class="flex justify-between items-start mb-2">
+    <div>
+      <p class="font-bold text-white text-sm">🏪 ${r.shopName}</p>
+      
+      <!-- عرض الرقم -->
+      <div class="flex items-center gap-1 mt-1">
+        <span class="text-gray-500 text-[10px]">رقم الحساب:</span>
+        <span class="text-orange-400 font-mono text-sm font-bold tracking-wider" dir="ltr">
+          ${displayPhone || 'غير متوفر'}
+        </span>
+      </div>
+    </div>
+    <p class="text-purple-400 font-black text-xl">${r.amount} DA</p>
+  </div>
+  
+  ${r.receiptImage ? `<div class="bg-gray-900 rounded-xl p-1 border border-gray-600 mt-2"><img src="${r.receiptImage}" class="h-24 w-full object-contain rounded cursor-zoom-in" onclick="openLightbox(this.src)"></div>` : ''}
+  
+  <div class="flex gap-2 mt-3">
+    <button onclick="adminApproveTopUp('${item.id}', '${r.sellerId}', ${r.amount})" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-3 rounded-xl transition shadow-lg shadow-green-900/20">تأكيد الشحن</button>
+    <button onclick="adminRejectTopUp('${item.id}')" class="px-6 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold py-3 rounded-xl transition">رفض</button>
+  </div>
+</div>`;
+});
+};
 
     // التنظيف التلقائي
     (async function systemAutoCleanup() {
