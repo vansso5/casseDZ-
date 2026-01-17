@@ -30,8 +30,6 @@
         .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
         .nav-active { color: #f97316; transform: scale(1.1); transition: all 0.2s; }
         .nav-active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #f97316; border-radius: 50%; }
-        .policy-content-merchant { max-height: 0; overflow: hidden; transition: all 0.5s ease-in-out; opacity: 0; }
-        .policy-content-merchant.open { max-height: 1000px; opacity: 1; margin-top: 1rem; }
     </style>
 </head>
 <body class="bg-slate-50/50 relative overflow-x-hidden selection:bg-orange-500 selection:text-white">
@@ -95,27 +93,18 @@
         
         <!-- 4. قسم الإعدادات -->
         <section id="view-settings" class="hidden space-y-6 animate-slide-up">
-            <!-- طلب شحن -->
             <div class="bg-gray-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden mb-6">
                 <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-600 rounded-full blur-[60px] opacity-20"></div>
                 <h3 class="font-black text-white mb-4 flex items-center gap-2 text-sm uppercase">طلب شحن <span class="text-green-500 italic">الرصيد</span></h3>
-                
                 <div class="space-y-4 relative z-10">
                     <input type="number" id="reqAmount" placeholder="المبلغ (DZD)" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-4 py-4 text-sm text-white text-center font-bold placeholder-gray-500 focus:border-green-500 transition-all outline-none">
                     
-                    <!-- 🔥 خانة إرفاق الوصل المحسنة (مثل التسجيل) 🔥 -->
                     <label for="reqReceiptImage" class="relative flex flex-col items-center justify-center w-full h-24 border-2 border-gray-600 border-dashed rounded-2xl cursor-pointer bg-gray-800/50 hover:bg-gray-700 hover:border-green-500 transition-all group overflow-hidden">
-                        
-                        <!-- الحالة الافتراضية -->
                         <div id="receiptPlaceholder" class="flex flex-col items-center justify-center pt-2 pb-3">
                             <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">📎</span>
                             <p class="text-[10px] text-gray-400 group-hover:text-green-400 transition-colors font-bold">إرفاق صورة الوصل (اختياري)</p>
                         </div>
-
-                        <!-- معاينة الصورة -->
                         <img id="receiptPreview" class="hidden absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="معاينة الوصل">
-                        
-                        <!-- المدخل المخفي -->
                         <input type="file" id="reqReceiptImage" class="hidden" accept="image/*">
                     </label>
 
@@ -168,18 +157,65 @@
         </div>
     </div>
 
-    <!-- Offer Modal -->
-    <div id="offerModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl animate-slide-up text-center border border-gray-100">
-            <button onclick="document.getElementById('offerModal').classList.add('hidden')" class="absolute top-4 left-4 text-gray-400">✕</button>
-            <h3 class="font-black text-gray-900 uppercase mb-6">سعرك <span class="text-orange-500">المقترح</span></h3>
-            <div class="space-y-4">
-                 <select id="offerCondition" class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm">
-                    <option value="مستعملة">مستعملة (Casse)</option>
-                    <option value="جديدة">جديدة (New)</option>
-                </select>
-                <input type="number" id="offerPrice" placeholder="5000" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 text-3xl font-black text-center focus:outline-none focus:border-orange-500">
-                <button id="sendOfferBtn" class="w-full bg-gray-900 text-white font-black py-4 rounded-2xl shadow-lg">إرسال</button>
+    <!-- 🔥🔥 Offer Modal (المعدل: صور، حالة، ملاحظات) 🔥🔥 -->
+    <div id="offerModal" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[110] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md p-6 rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl animate-slide-up text-center border border-gray-100 relative h-[85vh] sm:h-auto overflow-y-auto">
+            
+            <button onclick="document.getElementById('offerModal').classList.add('hidden')" class="absolute top-4 left-4 bg-gray-100 p-2 rounded-full text-gray-500 hover:text-red-500">✕</button>
+            <h3 class="font-black text-gray-900 uppercase mb-6 mt-2 text-lg">تفاصيل <span class="text-orange-500">العرض</span></h3>
+            
+            <div class="space-y-4 text-right">
+                
+                <!-- 1. السعر (إجباري) -->
+                <div>
+                    <label class="text-xs font-bold text-gray-400 mr-2">السعر المقترح (DA) <span class="text-red-500">*</span></label>
+                    <input type="number" id="offerPrice" placeholder="5000" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-2xl font-black text-center focus:outline-none focus:border-orange-500 transition-all mt-1">
+                </div>
+
+                <!-- 2. الحالة (إجباري) -->
+                <div>
+                    <label class="text-xs font-bold text-gray-400 mr-2">حالة القطعة <span class="text-red-500">*</span></label>
+                    <select id="offerCondition" class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm font-bold text-gray-700 mt-1 focus:border-orange-500 outline-none">
+                        <option value="مستعملة">مستعملة (Original)</option>
+                        <option value="شبه جديدة">شبه جديدة (Bon état)</option>
+                        <option value="جديدة">جديدة (New)</option>
+                        <option value="كابة">كابة (Cabas)</option>
+                        <option value="قديمة">قديمة</option>
+                    </select>
+                </div>
+
+                <!-- 3. الصور (اختياري - 3 صور) -->
+                <div>
+                    <label class="text-xs font-bold text-gray-400 mr-2">صور القطعة (اختياري - ماكس 3)</label>
+                    <div class="flex gap-2 mt-2">
+                        <!-- صورة 1 -->
+                        <label class="flex-1 aspect-square bg-slate-50 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 flex items-center justify-center relative overflow-hidden group">
+                            <span class="text-2xl text-gray-300 group-hover:text-orange-400">+</span>
+                            <img id="preview1" class="absolute inset-0 w-full h-full object-cover hidden">
+                            <input type="file" id="offerImg1" class="hidden" accept="image/*" onchange="previewOfferImg(this, 'preview1')">
+                        </label>
+                        <!-- صورة 2 -->
+                        <label class="flex-1 aspect-square bg-slate-50 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 flex items-center justify-center relative overflow-hidden group">
+                            <span class="text-2xl text-gray-300 group-hover:text-orange-400">+</span>
+                            <img id="preview2" class="absolute inset-0 w-full h-full object-cover hidden">
+                            <input type="file" id="offerImg2" class="hidden" accept="image/*" onchange="previewOfferImg(this, 'preview2')">
+                        </label>
+                        <!-- صورة 3 -->
+                        <label class="flex-1 aspect-square bg-slate-50 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 flex items-center justify-center relative overflow-hidden group">
+                            <span class="text-2xl text-gray-300 group-hover:text-orange-400">+</span>
+                            <img id="preview3" class="absolute inset-0 w-full h-full object-cover hidden">
+                            <input type="file" id="offerImg3" class="hidden" accept="image/*" onchange="previewOfferImg(this, 'preview3')">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 4. الملاحظات (اختياري) -->
+                <div>
+                    <label class="text-xs font-bold text-gray-400 mr-2">ملاحظات إضافية (اختياري)</label>
+                    <textarea id="offerNotes" rows="2" placeholder="مثلاً: فيها خدش بسيط، أصلية..." class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm mt-1 focus:border-orange-500 outline-none"></textarea>
+                </div>
+
+                <button id="sendOfferBtn" class="w-full bg-gray-900 text-white font-black py-4 rounded-2xl shadow-lg mt-2 active:scale-95 transition-transform">إرسال العرض</button>
             </div>
         </div>
     </div>
@@ -210,27 +246,20 @@
         let selectedOrderId = null;
         let myOfferedOrderIds = new Set();
 
-        // 🔥 كود معاينة الوصل (Logic for Receipt Preview) 🔥
-        const receiptInput = document.getElementById('reqReceiptImage');
-        const receiptPreview = document.getElementById('receiptPreview');
-        const receiptPlaceholder = document.getElementById('receiptPlaceholder');
-
-        if(receiptInput) {
-            receiptInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        receiptPreview.src = e.target.result;
-                        receiptPreview.classList.remove('hidden');
-                        receiptPlaceholder.classList.add('hidden');
-                    }
-                    reader.readAsDataURL(file);
+        // 🔥 Helper: معاينة صور العرض 🔥
+        window.previewOfferImg = (input, previewId) => {
+            const file = input.files[0];
+            const preview = document.getElementById(previewId);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
                 }
-            });
-        }
+                reader.readAsDataURL(file);
+            }
+        };
 
-        // دالة ضغط الصور (للإرسال)
         const compressImage = (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -260,6 +289,7 @@
             });
         };
 
+        // ... (نفس كود الاستماع للبيانات السابق تماماً) ...
         // 1. التحقق من الدخول
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -291,22 +321,15 @@
                 const list = document.getElementById('ordersList');
                 list.innerHTML = "";
                 let count = 0;
-
-                if (snapshot.empty) {
-                    list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لا توجد طلبات حالياً</p>`;
-                    return;
-                }
-
+                if (snapshot.empty) { list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لا توجد طلبات حالياً</p>`; return; }
                 snapshot.forEach((doc) => {
                     const order = doc.data();
                     if (order.status === 'sold') return;
                     if (myOfferedOrderIds.has(doc.id)) return; 
-
                     count++;
                     const item = document.createElement('div');
                     item.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:border-orange-200 transition cursor-pointer mb-3";
                     item.onclick = () => openDetailsModal(doc.id, order);
-                    
                     item.innerHTML = `
                         <div class="absolute top-0 right-0 w-1.5 h-full bg-orange-500 rounded-l-full"></div>
                         <div class="flex justify-between items-start mb-2 pl-2">
@@ -327,19 +350,13 @@
             });
         }
 
-        // 3. جلب عروضي
         function startListeningMyOffers(uid) {
             const q = query(collection(db, "offers"), where("sellerId", "==", uid));
             onSnapshot(q, (snapshot) => {
                 const list = document.getElementById('myOffersList');
                 list.innerHTML = "";
                 myOfferedOrderIds.clear();
-
-                if (snapshot.empty) {
-                    list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لم ترسل أي عروض</p>`;
-                    return;
-                }
-
+                if (snapshot.empty) { list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لم ترسل أي عروض</p>`; return; }
                 snapshot.forEach(doc => {
                     const offer = doc.data();
                     myOfferedOrderIds.add(offer.orderId);
@@ -359,19 +376,13 @@
             });
         }
 
-        // 4. جلب المبيعات
         function startListeningSales(uid) {
             const q = query(collection(db, "sales"), where("sellerId", "==", uid));
             onSnapshot(q, (snap) => {
                 const list = document.getElementById('salesList');
                 list.innerHTML = "";
                 document.getElementById('totalSalesCount').innerText = snap.size;
-                
-                if(snap.empty) {
-                    list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs border border-dashed rounded-[2rem]">سجل المبيعات فارغ</p>`;
-                    return;
-                }
-
+                if(snap.empty) { list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs border border-dashed rounded-[2rem]">سجل المبيعات فارغ</p>`; return; }
                 snap.forEach(d => {
                     const sale = d.data();
                     list.innerHTML += `
@@ -386,13 +397,11 @@
             });
         }
 
-        // --- وظائف UI ---
         window.openDetailsModal = (id, data) => {
             selectedOrderId = id;
             document.getElementById('detailPartName').innerText = data.partName;
             document.getElementById('detailCarInfo').innerText = `${data.carMake} ${data.carYear || ''}`;
             document.getElementById('detailNotes').innerText = data.notes || "لا توجد ملاحظات";
-            
             const img = document.getElementById('detailImage');
             const txt = document.getElementById('noImageText');
             if(data.imageUrl && data.imageUrl.length > 20) {
@@ -404,27 +413,35 @@
                 img.classList.add('hidden');
                 txt.classList.remove('hidden');
             }
-            
             document.getElementById('detailsModal').classList.remove('hidden');
         };
 
-        document.getElementById('btnOpenOffer').onclick = () => {
-            document.getElementById('detailsModal').classList.add('hidden');
-            document.getElementById('offerModal').classList.remove('hidden');
-        };
-
+        // 🔥🔥 كود إرسال العرض المطور 🔥🔥
         document.getElementById('sendOfferBtn').onclick = async () => {
             if(currentSellerData.balance < 50) return alert("رصيدك غير كافٍ (أقل من 50 دج)");
+            
             const price = document.getElementById('offerPrice').value;
             const cond = document.getElementById('offerCondition').value;
+            const notes = document.getElementById('offerNotes').value;
             
             if(!price) return alert("أدخل السعر");
 
             const btn = document.getElementById('sendOfferBtn');
-            btn.innerHTML = "جارِ الإرسال...";
+            btn.innerHTML = "جارِ المعالجة...";
             btn.disabled = true;
 
             try {
+                // 1. ضغط الصور الثلاثة (إن وجدت)
+                let images = [];
+                const f1 = document.getElementById('offerImg1').files[0];
+                const f2 = document.getElementById('offerImg2').files[0];
+                const f3 = document.getElementById('offerImg3').files[0];
+
+                if(f1) images.push(await compressImage(f1));
+                if(f2) images.push(await compressImage(f2));
+                if(f3) images.push(await compressImage(f3));
+
+                // 2. إرسال العرض
                 await addDoc(collection(db, "offers"), {
                     orderId: selectedOrderId,
                     sellerId: currentUser.uid,
@@ -433,71 +450,83 @@
                     sellerWilaya: currentSellerData.wilaya,
                     price: price,
                     condition: cond,
+                    notes: notes,
+                    images: images, // مصفوفة الصور
                     partName: document.getElementById('detailPartName').innerText,
                     createdAt: serverTimestamp()
                 });
                 
                 alert("تم إرسال العرض بنجاح!");
                 document.getElementById('offerModal').classList.add('hidden');
+                
+                // تنظيف الحقول
                 document.getElementById('offerPrice').value = "";
+                document.getElementById('offerNotes').value = "";
+                document.getElementById('offerImg1').value = "";
+                document.getElementById('offerImg2').value = "";
+                document.getElementById('offerImg3').value = "";
+                ['preview1', 'preview2', 'preview3'].forEach(id => document.getElementById(id).classList.add('hidden'));
+
                 window.switchTab('offers');
                 
-            } catch(e) { alert("خطأ: " + e.message); }
+            } catch(e) { 
+                console.error(e);
+                alert("خطأ: " + e.message); 
+            }
             finally { btn.innerHTML = "إرسال العرض"; btn.disabled = false; }
         };
 
-        // 🔥 تحديث زر طلب الرصيد لدعم الصورة 🔥
+        // ... (باقي الأزرار: رصيد، كلمة سر...) ...
         document.getElementById('btnRequestBalance').onclick = async () => {
             const amount = document.getElementById('reqAmount').value;
             const receiptInput = document.getElementById('reqReceiptImage');
-            
             if(!amount) return alert("أدخل المبلغ");
-
             const btn = document.getElementById('btnRequestBalance');
             btn.innerText = "جاري الإرسال...";
             btn.disabled = true;
-
             try {
                 let receiptBase64 = null;
-                // ضغط صورة الوصل إذا وجدت
-                if(receiptInput.files[0]) {
-                    receiptBase64 = await compressImage(receiptInput.files[0]);
-                }
-
+                if(receiptInput.files[0]) { receiptBase64 = await compressImage(receiptInput.files[0]); }
                 await addDoc(collection(db, "balance_requests"), {
                     sellerId: currentUser.uid,
                     shopName: currentSellerData.shopName,
                     amount: parseInt(amount),
-                    receiptImage: receiptBase64, // حفظ الصورة
+                    receiptImage: receiptBase64,
                     status: 'pending',
                     createdAt: serverTimestamp()
                 });
-                
                 alert("تم إرسال الطلب للإدارة");
                 document.getElementById('reqAmount').value = "";
-                
-                // تصفير الصورة والمعاينة
                 receiptInput.value = "";
                 document.getElementById('receiptPreview').classList.add('hidden');
                 document.getElementById('receiptPlaceholder').classList.remove('hidden');
-
-            } catch(e) { 
-                console.error(e);
-                alert("خطأ في الإرسال"); 
-            } finally {
-                btn.innerText = "إرسال الطلب";
-                btn.disabled = false;
-            }
+            } catch(e) { alert("خطأ"); } finally { btn.innerText = "إرسال الطلب"; btn.disabled = false; }
         };
 
+        document.getElementById('btnOpenOffer').onclick = () => {
+            document.getElementById('detailsModal').classList.add('hidden');
+            document.getElementById('offerModal').classList.remove('hidden');
+        };
+        
         document.getElementById('btnChangePass').onclick = async () => {
             const newP = document.getElementById('newPass').value;
             if(!newP || newP.length < 6) return alert("قصيرة جداً");
-            try {
-                await updatePassword(currentUser, newP);
-                alert("تم التغيير بنجاح");
-            } catch(e) { alert("يجب إعادة تسجيل الدخول لتغيير كلمة السر"); }
+            try { await updatePassword(currentUser, newP); alert("تم التغيير بنجاح"); } catch(e) { alert("يجب إعادة تسجيل الدخول لتغيير كلمة السر"); }
         };
+
+        const receiptInput = document.getElementById('reqReceiptImage');
+        const receiptPreview = document.getElementById('receiptPreview');
+        const receiptPlaceholder = document.getElementById('receiptPlaceholder');
+        if(receiptInput) {
+            receiptInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) { receiptPreview.src = e.target.result; receiptPreview.classList.remove('hidden'); receiptPlaceholder.classList.add('hidden'); }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
 
         function getWilayaName(code) {
              const wilayas = ["Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", "Béchar", "Blida", "Bouira", "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Alger", "Djelfa", "Jijel", "Sétif", "Saïda", "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma", "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", "Ouargla", "Oran", "El Bayadh", "Illizi", "Bordj Bou Arreridj", "Boumerdès", "El Tarf", "Tindouf", "Tissemsilt", "El Oued", "Khenchela", "Souk Ahras", "Tipaza", "Mila", "Aïn Defla", "Naâma", "Aïn Témouchent", "Ghardaïa", "Relizane", "Timimoun", "Bordj Badji Mokhtar", "Ouled Djellal", "Béni Abbès", "In Salah", "In Guezzam", "Touggourt", "Djanet", "El M'Ghair", "El Meniaa"];
