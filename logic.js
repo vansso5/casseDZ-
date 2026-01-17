@@ -497,50 +497,81 @@ window.openCustomerOfferDetails = (offerDataEncoded) => {
     modal.classList.remove('hidden');
 };
 
-// --- الدالة النهائية: الخصم + الكشف + تجهيز التقييم ---
+// --- الدالة النهائية: الخصم الآمن + الكشف + تجهيز التقييم ---
 window.handleFinalSelection = async (sellerId, orderId, phone, sellerName, sellerWilaya, partName, price) => {
-    
-    if(!confirm("هل أنت متأكد من اختيار هذا العرض؟\nسيتم نقلك للاتصال فوراً.")) return;
-    
-    const btn = document.querySelector('#custModalActionArea button');
-    if(btn) {
-        btn.disabled = true;
-        btn.innerHTML = `<span class="animate-pulse">جاري تحويل الاتصال...</span>`;
-    }
 
-    try {
-        const batch = writeBatch(db);
+// 1. حماية الزر من الضغط المتكرر (Double Click)
+const btn = document.querySelector('#custModalActionArea button');
+if(btn && btn.disabled) return; // إذا كان الزر معطلاً، توقف فوراً
 
-        // 1. خصم الرصيد
-        const sellerRef = doc(db, "sellers", sellerId);
-        batch.update(sellerRef, { balance: increment(-50) });
+if(!confirm("هل أنت متأكد من اختيار هذا العرض؟\nسيتم خصم 50 دج من التاجر وكشف الرقم.")) return;
 
-        // 2. تحديث الحالة إلى مباع
-        const orderRef = doc(db, "orders", orderId);
-        batch.update(orderRef, { status: 'sold', soldAt: serverTimestamp() });
+// تعطيل الزر فوراً وتغيير النص
+if(btn) {
+btn.disabled = true;
+btn.innerHTML = `<span class="animate-pulse">جاري التحقق والاتصال...</span>`;
+}
 
-        // 3. تسجيل بيع
-        const saleRef = doc(collection(db, "sales"));
-        batch.set(saleRef, { sellerId, orderId, partName, price: price, soldAt: serverTimestamp() });
+try {
+// 2. 🛑 الفحص الأمني: هل الطلب مباع مسبقاً؟
+// نقرأ الطلب من قاعدة البيانات قبل الخصم
+const orderRef = doc(db, "orders", orderId);
+const orderSnap = await getDoc(orderRef);
 
-        await batch.commit();
+if (!orderSnap.exists()) {
+alert("عذراً، يبدو أن هذا الطلب قد تم حذفه.");
+document.getElementById('custOfferModal').classList.add('hidden');
+return;
+}
 
-        document.getElementById('custOfferModal').classList.add('hidden');
+const currentStatus = orderSnap.data().status;
 
-        currentReviewSellerId = sellerId;
-        currentReviewOrderId = orderId; 
-        
-        if(window.openReviewModal) {
-            window.openReviewModal(sellerName, sellerWilaya);
-        }
+// 3. إذا كان الطلب مباعاً بالفعل، نوقف العملية ولا نخصم
+if (currentStatus === 'sold') {
+alert("⚠️ تنبيه: لقد تم بيع هذا الطلب بالفعل!");
+document.getElementById('custOfferModal').classList.add('hidden');
 
-        window.location.href = `tel:${phone}`;
+// خيار: يمكنك توجيهه للاتصال دون خصم (بما أنه اشترى بالفعل) أو مجرد إغلاق النافذة
+// هنا سنغلق النافذة ونقوم بتحديث الصفحة أو القائمة لاحقاً
+return;
+}
 
-    } catch(e) { 
-        console.error(e); 
-        alert("حدث خطأ أثناء العملية.");
-        if(btn) { btn.disabled = false; btn.innerText = "كشف الرقم والاتصال"; }
-    }
+// 4. إذا وصلنا هنا، فالطلب سليم -> ننفذ الخصم والبيع
+const batch = writeBatch(db);
+
+// أ) خصم الرصيد
+const sellerRef = doc(db, "sellers", sellerId);
+batch.update(sellerRef, { balance: increment(-50) });
+
+// ب) تحديث الحالة إلى مباع (ليغلق الباب أمام أي خصم آخر)
+batch.update(orderRef, { status: 'sold', soldAt: serverTimestamp() });
+
+// ج) تسجيل بيع
+const saleRef = doc(collection(db, "sales"));
+batch.set(saleRef, { sellerId, orderId, partName, price: price, soldAt: serverTimestamp() });
+
+// تنفيذ كل العمليات دفعة واحدة
+await batch.commit();
+
+// 5. إغلاق المودال وتجهيز التقييم
+document.getElementById('custOfferModal').classList.add('hidden');
+
+currentReviewSellerId = sellerId;
+currentReviewOrderId = orderId;
+
+if(window.openReviewModal) {
+window.openReviewModal(sellerName, sellerWilaya);
+}
+
+// 6. فتح الهاتف للاتصال
+window.location.href = `tel:${phone}`;
+
+} catch(e) {
+console.error("Error in transaction:", e);
+alert("حدث خطأ في الاتصال، يرجى المحاولة مجدداً.");
+// إعادة تفعيل الزر في حالة الخطأ فقط
+if(btn) { btn.disabled = false; btn.innerText = "كشف الرقم والاتصال"; }
+}
 };
 
 // --- زر إرسال التقييم + حذف العروض ---
