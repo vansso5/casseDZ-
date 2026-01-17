@@ -2,9 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#f97316">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#f97316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة البائع | La Casse Pro</title>
@@ -56,7 +56,7 @@
                     <div class="flex items-center justify-between gap-4 mt-2 w-full">
                         <div class="flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                            <p class="text-[11px] font-bold text-gray-600 uppercase tracking-wide truncate max-w-[100px]" id="headerShopName">...</p>
+                            <p class="text-[11px] font-bold text-gray-600 uppercase tracking-wide truncate max-w-[100px]" id="headerShopName">جاري التحميل...</p>
                         </div>
 
                         <div class="flex items-center bg-gray-50 border border-gray-100 px-2 py-1 rounded-full gap-1.5 shadow-sm">
@@ -303,8 +303,62 @@
                 icon.style.transform = 'rotate(0deg)';
             }
         }
-        window.logoutSeller = () => { if(confirm("خروج؟")) { localStorage.removeItem('sellerId'); window.location.href = 'seller-login.html'; } }
     </script>
-    <script type="module" src="./logic.js"></script>
+    
+    <!-- ✅ الكود المصحح: منطق الداشبورد فقط (بدون تكرار) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // معلومات مشروعك
+        const firebaseConfig = {
+          apiKey: "AIzaSyDLNY-Uya4tpZSplAqhpsmxgOrwlQMFODI",
+          authDomain: "casse-auto-8ef9a.firebaseapp.com",
+          databaseURL: "https://casse-auto-8ef9a-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "casse-auto-8ef9a",
+          storageBucket: "casse-auto-8ef9a.firebasestorage.app",
+          messagingSenderId: "257994887284",
+          appId: "1:257994887284:web:16e6006f68520fbbc94121"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ==========================================
+        // مراقب الدخول (الحماية من التكرار)
+        // ==========================================
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // ✅ المستخدم موجود: ابقَ هنا وحمل البيانات
+                console.log("Logged in as:", user.email);
+                
+                // جلب اسم الورشة والرصيد مباشرة
+                const sellerRef = doc(db, "sellers", user.uid);
+                onSnapshot(sellerRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        document.getElementById('headerShopName').textContent = data.shopName || "مستخدم";
+                        document.getElementById('headerBalance').textContent = (data.balance || 0) + " DZD";
+                    }
+                });
+
+            } else {
+                // ❌ المستخدم غير موجود: ارجع لصفحة الدخول
+                window.location.href = "index.html"; 
+            }
+        });
+
+        // ==========================================
+        // وظيفة تسجيل الخروج (يجب أن تكون داخل الموديول لتعمل)
+        // ==========================================
+        window.logoutSeller = async () => {
+            if(confirm("هل أنت متأكد من تسجيل الخروج؟")) {
+                await signOut(auth);
+                window.location.href = "index.html";
+            }
+        };
+    </script>
 </body>
 </html>
