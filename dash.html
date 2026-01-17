@@ -93,7 +93,6 @@
         
         <!-- 4. قسم الإعدادات -->
         <section id="view-settings" class="hidden space-y-6 animate-slide-up">
-            <!-- طلب شحن -->
             <div class="bg-gray-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden mb-6">
                 <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-600 rounded-full blur-[60px] opacity-20"></div>
                 <h3 class="font-black text-white mb-4 flex items-center gap-2 text-sm uppercase">طلب شحن <span class="text-green-500 italic">الرصيد</span></h3>
@@ -143,7 +142,7 @@
         <div class="bg-white w-full max-w-md mx-auto rounded-t-[3.5rem] shadow-2xl overflow-hidden relative border-t border-gray-100">
             <button onclick="closeDetailsModal()" class="absolute top-6 left-6 bg-white/80 p-2 rounded-full text-gray-500 hover:bg-orange-500 hover:text-white transition z-20 shadow-sm">✕</button>
             <div class="h-72 bg-slate-100 flex items-center justify-center relative">
-                <img id="detailImage" src="" class="h-full w-full object-cover hidden">
+                <img id="detailImage" src="" class="h-full w-full object-cover hidden cursor-zoom-in" onclick="openLightbox(this.src)">
                 <div id="noImageText" class="text-gray-400 font-bold text-xs uppercase tracking-widest">لا توجد صورة</div>
             </div>
             <div class="p-8">
@@ -166,42 +165,33 @@
             <h3 class="font-black text-gray-900 uppercase mb-6 mt-2 text-lg">تفاصيل <span class="text-orange-500">العرض</span></h3>
             
             <div class="space-y-4 text-right">
-                
-                <!-- 1. السعر (إجباري) -->
                 <div>
                     <label class="text-xs font-bold text-gray-400 mr-2">السعر المقترح (DA) <span class="text-red-500">*</span></label>
                     <input type="number" id="offerPrice" placeholder="5000" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-2xl font-black text-center focus:outline-none focus:border-orange-500 transition-all mt-1">
                 </div>
-
-                <!-- 2. الحالة (إجباري) - القائمة الاحترافية -->
                 <div>
                     <label class="text-xs font-bold text-gray-400 mr-2">حالة القطعة <span class="text-red-500">*</span></label>
                     <select id="offerCondition" class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm font-bold text-gray-700 mt-1 focus:border-orange-500 outline-none">
-                        <option value="مستعملة - حالة جيدة">مستعملة - حالة جيدة (Bon état)</option>
+                        <option value="مستعملة (حالة جيدة)">مستعملة - حالة جيدة (Bon état)</option>
                         <option value="مستوردة (Casse Import)">مستوردة (Importation)</option>
                         <option value="جديدة (New)">جديدة (New)</option>
                         <option value="مستعملة (محلية)">مستعملة (Local)</option>
                         <option value="للتصليح">تتطلب صيانة (A réparer)</option>
                     </select>
                 </div>
-
-                <!-- 3. الصور (اختياري - 3 صور) -->
                 <div>
                     <label class="text-xs font-bold text-gray-400 mr-2">صور القطعة (اختياري - ماكس 3)</label>
                     <div class="flex gap-2 mt-2">
-                        <!-- صورة 1 -->
                         <label class="flex-1 aspect-square bg-slate-50 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 flex items-center justify-center relative overflow-hidden group">
                             <span class="text-2xl text-gray-300 group-hover:text-orange-400">+</span>
                             <img id="preview1" class="absolute inset-0 w-full h-full object-cover hidden">
                             <input type="file" id="offerImg1" class="hidden" accept="image/*" onchange="previewOfferImg(this, 'preview1')">
                         </label>
-                        <!-- صورة 2 -->
                         <label class="flex-1 aspect-square bg-slate-50 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 flex items-center justify-center relative overflow-hidden group">
                             <span class="text-2xl text-gray-300 group-hover:text-orange-400">+</span>
                             <img id="preview2" class="absolute inset-0 w-full h-full object-cover hidden">
                             <input type="file" id="offerImg2" class="hidden" accept="image/*" onchange="previewOfferImg(this, 'preview2')">
                         </label>
-                        <!-- صورة 3 -->
                         <label class="flex-1 aspect-square bg-slate-50 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 flex items-center justify-center relative overflow-hidden group">
                             <span class="text-2xl text-gray-300 group-hover:text-orange-400">+</span>
                             <img id="preview3" class="absolute inset-0 w-full h-full object-cover hidden">
@@ -209,16 +199,19 @@
                         </label>
                     </div>
                 </div>
-
-                <!-- 4. الملاحظات (اختياري) -->
                 <div>
                     <label class="text-xs font-bold text-gray-400 mr-2">ملاحظات إضافية (اختياري)</label>
                     <textarea id="offerNotes" rows="2" placeholder="مثلاً: فيها خدش بسيط، أصلية..." class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm mt-1 focus:border-orange-500 outline-none"></textarea>
                 </div>
-
                 <button id="sendOfferBtn" class="w-full bg-gray-900 text-white font-black py-4 rounded-2xl shadow-lg mt-2 active:scale-95 transition-transform">إرسال العرض</button>
             </div>
         </div>
+    </div>
+
+    <!-- Lightbox (عارض الصور الجديد) -->
+    <div id="lightbox" class="fixed inset-0 z-[200] bg-black/95 hidden flex justify-center items-center backdrop-blur-md" onclick="document.getElementById('lightbox').classList.add('hidden')">
+        <button onclick="document.getElementById('lightbox').classList.add('hidden')" class="absolute top-6 left-6 text-white bg-white/10 p-3 rounded-full hover:bg-red-500 transition">✕</button>
+        <img id="lightbox-img" class="max-w-[95%] max-h-[85vh] rounded-lg shadow-2xl object-contain">
     </div>
 
     <!-- Logic Script -->
@@ -246,6 +239,14 @@
         let currentSellerData = null;
         let selectedOrderId = null;
         let myOfferedOrderIds = new Set();
+
+        // 🔥 دالة فتح عارض الصور (Lightbox) 🔥
+        window.openLightbox = (src) => {
+            const lb = document.getElementById('lightbox');
+            const img = document.getElementById('lightbox-img');
+            img.src = src;
+            lb.classList.remove('hidden');
+        };
 
         // 🔥 Helper: معاينة صور العرض 🔥
         window.previewOfferImg = (input, previewId) => {
@@ -321,23 +322,15 @@
                 const list = document.getElementById('ordersList');
                 list.innerHTML = "";
                 let count = 0;
-
-                if (snapshot.empty) {
-                    list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لا توجد طلبات حالياً</p>`;
-                    return;
-                }
-
+                if (snapshot.empty) { list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لا توجد طلبات حالياً</p>`; return; }
                 snapshot.forEach((doc) => {
                     const order = doc.data();
                     if (order.status === 'sold') return;
                     if (myOfferedOrderIds.has(doc.id)) return; 
-
                     count++;
                     const item = document.createElement('div');
                     item.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:border-orange-200 transition cursor-pointer mb-3";
                     item.onclick = () => openDetailsModal(doc.id, order);
-                    
-                    // ✅ تم التصحيح: لا يوجد تكرار، وتمت إضافة carModel
                     item.innerHTML = `
                         <div class="absolute top-0 right-0 w-1.5 h-full bg-orange-500 rounded-l-full"></div>
                         <div class="flex justify-between items-start mb-2 pl-2">
@@ -366,12 +359,7 @@
                 const list = document.getElementById('myOffersList');
                 list.innerHTML = "";
                 myOfferedOrderIds.clear();
-
-                if (snapshot.empty) {
-                    list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لم ترسل أي عروض</p>`;
-                    return;
-                }
-
+                if (snapshot.empty) { list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs">لم ترسل أي عروض</p>`; return; }
                 snapshot.forEach(doc => {
                     const offer = doc.data();
                     myOfferedOrderIds.add(offer.orderId);
@@ -397,12 +385,7 @@
                 const list = document.getElementById('salesList');
                 list.innerHTML = "";
                 document.getElementById('totalSalesCount').innerText = snap.size;
-                
-                if(snap.empty) {
-                    list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs border border-dashed rounded-[2rem]">سجل المبيعات فارغ</p>`;
-                    return;
-                }
-
+                if(snap.empty) { list.innerHTML = `<p class="text-center text-gray-400 py-10 text-xs border border-dashed rounded-[2rem]">سجل المبيعات فارغ</p>`; return; }
                 snap.forEach(d => {
                     const sale = d.data();
                     list.innerHTML += `
@@ -420,10 +403,7 @@
         window.openDetailsModal = (id, data) => {
             selectedOrderId = id;
             document.getElementById('detailPartName').innerText = data.partName;
-            
-            // ✅ تم التصحيح: إظهار الموديل في النافذة أيضاً
             document.getElementById('detailCarInfo').innerText = `${data.carMake} ${data.carModel || ''} ${data.carYear || ''}`;
-            
             document.getElementById('detailNotes').innerText = data.notes || "لا توجد ملاحظات";
             const img = document.getElementById('detailImage');
             const txt = document.getElementById('noImageText');
@@ -431,7 +411,8 @@
                 img.src = data.imageUrl;
                 img.classList.remove('hidden');
                 txt.classList.add('hidden');
-                img.onclick = () => window.open(data.imageUrl);
+                // 🔥 استخدام الدالة الجديدة للفتح 🔥
+                img.onclick = () => openLightbox(data.imageUrl);
             } else {
                 img.classList.add('hidden');
                 txt.classList.remove('hidden');
@@ -439,7 +420,6 @@
             document.getElementById('detailsModal').classList.remove('hidden');
         };
 
-        // 🔥🔥 كود إرسال العرض المطور 🔥🔥
         document.getElementById('sendOfferBtn').onclick = async () => {
             if(currentSellerData.balance < 50) return alert("رصيدك غير كافٍ (أقل من 50 دج)");
             
@@ -454,7 +434,6 @@
             btn.disabled = true;
 
             try {
-                // 1. ضغط الصور الثلاثة (إن وجدت)
                 let images = [];
                 const f1 = document.getElementById('offerImg1').files[0];
                 const f2 = document.getElementById('offerImg2').files[0];
@@ -464,7 +443,6 @@
                 if(f2) images.push(await compressImage(f2));
                 if(f3) images.push(await compressImage(f3));
 
-                // 2. إرسال العرض
                 await addDoc(collection(db, "offers"), {
                     orderId: selectedOrderId,
                     sellerId: currentUser.uid,
@@ -474,15 +452,13 @@
                     price: price,
                     condition: cond,
                     notes: notes,
-                    images: images, // مصفوفة الصور
+                    images: images,
                     partName: document.getElementById('detailPartName').innerText,
                     createdAt: serverTimestamp()
                 });
                 
                 alert("تم إرسال العرض بنجاح!");
                 document.getElementById('offerModal').classList.add('hidden');
-                
-                // تنظيف الحقول
                 document.getElementById('offerPrice').value = "";
                 document.getElementById('offerNotes').value = "";
                 document.getElementById('offerImg1').value = "";
@@ -499,7 +475,6 @@
             finally { btn.innerHTML = "إرسال العرض"; btn.disabled = false; }
         };
 
-        // ... (باقي الأزرار: رصيد، كلمة سر...) ...
         document.getElementById('btnRequestBalance').onclick = async () => {
             const amount = document.getElementById('reqAmount').value;
             const receiptInput = document.getElementById('reqReceiptImage');
