@@ -264,65 +264,85 @@ window.resetCustomerForm = () => {
     if(submitBtn) { submitBtn.disabled = false; submitBtn.innerText = "إرسال الطلب"; }
 };
 
-const btnNewOrder = document.getElementById('btnNewOrder') || document.getElementById('backToFormBtn'); 
-if(btnNewOrder) {
+const btnNewOrder = document.getElementById('btnNewOrder') || document.getElementById('backToFormBtn');
+if (btnNewOrder) {
     btnNewOrder.addEventListener('click', window.resetCustomerForm);
 }
 
+// --- زر إرسال الطلب (مع حفظ الصورة كنص Base64) ---
 const submitBtn = document.getElementById('submitBtn');
 if (submitBtn) {
     submitBtn.addEventListener('click', async () => {
-        const carMake = document.getElementById('carMake').value;
-        const carModel = document.getElementById('carModel').value;
-        const carYear = document.getElementById('carYear').value;
-        const partName = document.getElementById('partName').value;
-        const partNotes = document.getElementById('partNotes') ? document.getElementById('partNotes').value : "";
-        const phoneNumber = document.getElementById('phoneNumber').value;
+        // 1. جلب البيانات من الحقول
+        const carMake = document.getElementById('carMake').value.trim();
+        const carModel = document.getElementById('carModel').value.trim();
+        const carYear = document.getElementById('carYear').value.trim();
+        const partName = document.getElementById('partName').value.trim();
+        const partNotes = document.getElementById('partNotes') ? document.getElementById('partNotes').value.trim() : "";
+        const phoneNumber = document.getElementById('phoneNumber').value.trim();
         const wilaya = document.getElementById('wilaya') ? document.getElementById('wilaya').value : "";
-
-        if(!carMake || !partName || !phoneNumber) { alert("املأ البيانات"); return; }
-
+        
+        // 2. التحقق من الحقول الإجبارية
+        if (!carMake || !partName || !phoneNumber) {
+            alert("يرجى ملء البيانات الإجبارية (السيارة، القطعة، الهاتف)");
+            return;
+        }
+        
+        // 3. حماية الزر لمنع التكرار
         submitBtn.disabled = true;
         submitBtn.innerText = "جاري الإرسال...";
-
+        
+        // 4. توليد كود سري عشوائي (4 أرقام)
         const generatedCode = Math.floor(1000 + Math.random() * 9000).toString();
-
+        
         try {
+            // 5. الحفظ في Firestore مباشرة (بدون Storage)
+            // نعتمد هنا على المتغير uploadedImageBase64 الذي تم تجهيزه عند اختيار الصورة
             await addDoc(collection(db, "orders"), {
-                carMake, carModel, carYear, partName, notes: partNotes, phoneNumber,
-                wilaya: wilaya, 
-                imageUrl: uploadedImageBase64 || null, secretCode: generatedCode,
-                status: "active", createdAt: serverTimestamp()
+                carMake,
+                carModel,
+                carYear,
+                partName,
+                notes: partNotes,
+                phoneNumber,
+                wilaya: wilaya,
+                imageUrl: uploadedImageBase64 || null, // الصورة هنا كنص
+                secretCode: generatedCode,
+                status: "active",
+                createdAt: serverTimestamp()
             });
-
+            
+            // 6. إخفاء الفورم وإظهار شاشة النجاح
             safeToggle('formScreen', 'hide');
             safeToggle('successScreen', 'show');
-
+            
             const successDiv = document.getElementById('successScreen');
-            if(successDiv) {
-            successDiv.innerHTML = `
-            <div class="flex items-center justify-center min-h-[50vh] p-4">
-              <div class="bg-gray-800 w-full max-w-md p-6 rounded-[2rem] shadow-2xl text-center relative overflow-hidden animate-slide-up border border-gray-700">
-                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 to-orange-600"></div>
-                <div class="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/20 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
-                  <span class="text-4xl">✅</span>
-                </div>
-                <h3 class="text-2xl font-bold text-white mb-2">تم الإرسال بنجاح!</h3>
-                <div class="bg-gray-900/50 border border-gray-700 rounded-2xl p-5 my-6">
-                  <p class="text-xs text-orange-400 font-bold mb-2 uppercase tracking-widest">رمز التتبع الخاص بك</p>
-                  <div class="text-5xl font-black text-white tracking-[0.2em] font-mono my-3 select-all drop-shadow-md">
-                    ${generatedCode}
-                  </div>
-                  <p class="text-[10px] text-gray-500">استخدم هذا الرمز لمتابعة العروض</p>
-                </div>
-                <button onclick="window.resetCustomerForm()" class="w-full bg-white text-gray-900 font-black py-4 rounded-xl shadow-lg hover:bg-gray-200 transition transform active:scale-95 cursor-pointer text-sm">
-                  طلب قطعة أخرى
-                </button>
-              </div>
-            </div>`;
+            if (successDiv) {
+                successDiv.innerHTML = `
+<div class="flex items-center justify-center min-h-[50vh] p-4">
+  <div class="bg-gray-800 w-full max-w-md p-6 rounded-[2rem] shadow-2xl text-center relative overflow-hidden animate-slide-up border border-gray-700">
+    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+    <div class="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/20 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+      <span class="text-4xl">✅</span>
+    </div>
+    <h3 class="text-2xl font-bold text-white mb-2">تم الإرسال بنجاح!</h3>
+    <div class="bg-gray-900/50 border border-gray-700 rounded-2xl p-5 my-6">
+      <p class="text-xs text-orange-400 font-bold mb-2 uppercase tracking-widest">رمز التتبع الخاص بك</p>
+      <div class="text-5xl font-black text-white tracking-[0.2em] font-mono my-3 select-all drop-shadow-md">
+        ${generatedCode}
+      </div>
+      <p class="text-[10px] text-gray-500">استخدم هذا الرمز لمتابعة العروض</p>
+    </div>
+    <button onclick="window.resetCustomerForm()" class="w-full bg-white text-gray-900 font-black py-4 rounded-xl shadow-lg hover:bg-gray-200 transition transform active:scale-95 cursor-pointer text-sm">
+      طلب قطعة أخرى
+    </button>
+  </div>
+</div>`;
             }
         } catch (e) {
-            alert("خطأ: " + e.message);
+            console.error("Error submitting order:", e);
+            alert("حدث خطأ أثناء الإرسال: " + e.message);
+            // إعادة تفعيل الزر في حالة الخطأ
             submitBtn.disabled = false;
             submitBtn.innerText = "إرسال الطلب";
         }
