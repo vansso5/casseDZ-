@@ -670,17 +670,27 @@ if (document.getElementById('headerShopName')) {
             const imgEl = document.getElementById('detailImage');
             const txtEl = document.getElementById('noImageText');
             if (imgEl && txtEl) {
-                if (order.imageUrl && order.imageUrl.length > 20) { 
-                    imgEl.src = order.imageUrl; 
-                    imgEl.classList.remove('hidden'); 
-                    txtEl.classList.add('hidden');
-                    // إضافة Lightbox لصورة الطلب في التفاصيل
-                    imgEl.onclick = () => window.openLightbox(order.imageUrl);
-                    imgEl.style.cursor = "zoom-in";
-                } else {
-                    imgEl.classList.add('hidden'); txtEl.classList.remove('hidden');
-                }
+    if (order.imageUrl && order.imageUrl.length > 20) {
+        imgEl.src = order.imageUrl;
+        imgEl.classList.remove('hidden');
+        txtEl.classList.add('hidden');
+        
+        // ✅ التعديل هنا: استخدام Lightbox الداخلي بدلاً من window.open
+        imgEl.onclick = () => {
+            if (typeof window.openLightbox === 'function') {
+                window.openLightbox(order.imageUrl);
+            } else {
+                // احتياطي في حال لم تكن الدالة معرفة
+                console.error("Lightbox function missing");
+                window.open(order.imageUrl, '_blank');
             }
+        };
+        imgEl.style.cursor = "zoom-in";
+    } else {
+        imgEl.classList.add('hidden');
+        txtEl.classList.remove('hidden');
+    }
+}
             document.getElementById('detailsModal').classList.remove('hidden');
         } catch (err) { console.error(err); }
     };
