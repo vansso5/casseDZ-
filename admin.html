@@ -2,14 +2,16 @@
 <html lang="ar" dir="rtl">
 <head>
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#f97316">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#f97316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>الإدارة | La Casse Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    
     <script>
         tailwind.config = {
             theme: {
@@ -24,9 +26,7 @@
         }
     </script>
     <style> 
-        /* تعديل 1: استخدام 100dvh لضمان الطول الصحيح على الموبايل ومنع حركة الصفحة بالكامل */
         html, body { height: 100dvh; overflow: hidden; background-color: #0f172a; color: white; }
-        
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -61,7 +61,7 @@
 
         <div class="w-full max-w-xs space-y-4">
             <div class="relative">
-                <input type="email" id="adminEmail" class="w-full bg-gray-900/50 border border-gray-700 rounded-2xl py-4 px-6 text-center text-lg text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder-gray-700 backdrop-blur-sm" placeholder="example@admin.com">
+                <input type="email" id="adminEmail" class="w-full bg-gray-900/50 border border-gray-700 rounded-2xl py-4 px-6 text-center text-lg text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder-gray-700 backdrop-blur-sm" placeholder="البريد الإلكتروني">
             </div>
             <div class="relative">
                 <input type="password" id="adminPass" class="w-full bg-gray-900/50 border border-gray-700 rounded-2xl py-4 px-6 text-center text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder-gray-700 backdrop-blur-sm" placeholder="••••••">
@@ -71,11 +71,9 @@
     </div>
 
     <!-- 2. لوحة التحكم -->
-    <!-- تعديل 2: إضافة fixed inset-0 لضمان ثبات الحاوية -->
     <div id="adminDashboard" class="hidden fixed inset-0 flex flex-col w-full h-full bg-[#0f172a]">
         
         <!-- Header & Stats (ثابت) -->
-        <!-- تعديل 3: إضافة shrink-0 لمنع التقلص -->
         <div class="bg-gray-900/80 backdrop-blur-xl border-b border-gray-800 z-30 pb-4 shrink-0">
             <header class="flex justify-between items-center px-5 py-4">
                 <div class="flex items-center gap-3">
@@ -123,9 +121,9 @@
         </div>
 
         <!-- Main Content (المحتوى القابل للسكرول) -->
-        <!-- تعديل 4: إضافة overflow-y-auto هنا للسماح بالسكرول داخل هذا الجزء فقط -->
-        <!-- تعديل 5: إضافة pb-24 لضمان عدم اختفاء المحتوى خلف القائمة السفلية -->
         <main class="flex-1 overflow-y-auto p-5 pb-24 space-y-6 bg-[#0f172a] relative hide-scrollbar w-full">
+            
+            <!-- 1. Pending Sellers -->
             <section id="sec-pending" class="section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">طلبات الانضمام <span class="text-yellow-500 text-xs">(انتظار)</span></h3>
@@ -134,6 +132,8 @@
                     <p class="text-center text-gray-600 text-xs py-10">جاري التحميل...</p>
                 </div>
             </section>
+
+            <!-- 2. Balance Requests (هنا التعديل) -->
             <section id="sec-balance" class="hidden section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">طلبات الشحن <span class="text-purple-500 text-xs">(المالية)</span></h3>
@@ -142,6 +142,8 @@
                     <p class="text-center text-gray-600 text-xs py-10 border border-dashed border-gray-800 rounded-2xl">لا توجد طلبات شحن</p>
                 </div>
             </section>
+
+            <!-- 3. Orders -->
             <section id="sec-orders" class="hidden section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">طلبات القطع <span class="text-green-500 text-xs">(نشطة)</span></h3>
@@ -150,6 +152,8 @@
                     <p class="text-center text-gray-600 text-xs py-10">جاري التحميل...</p>
                 </div>
             </section>
+
+            <!-- 4. Sellers -->
             <section id="sec-sellers" class="hidden section-animate">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-white font-bold text-lg">التجار المعتمدين <span class="text-blue-500 text-xs">(الكل)</span></h3>
@@ -158,7 +162,6 @@
                     <p class="text-center text-gray-600 text-xs py-10">جاري التحميل...</p>
                 </div>
             </section>
-            <div id="adminRequestsList" class="hidden"></div>
         </main>
 
         <!-- Bottom Navigation (ثابت) -->
@@ -193,8 +196,10 @@
         </nav>
     </div>
 
+    <!-- UI Logic Scripts (No Firebase here) -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Default View
             if(document.getElementById('adminDashboard')) {
                 document.getElementById('card-pending').classList.add('active-pending');
             }
@@ -226,6 +231,297 @@
             }
         }
     </script>
-    <script type="module" src="./logic.js"></script>
+
+    <!-- FIREBASE LOGIC -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc, increment, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // إعدادات فايربيس (نفس المستخدمة في تطبيق البائع)
+        const firebaseConfig = {
+          apiKey: "AIzaSyDLNY-Uya4tpZSplAqhpsmxgOrwlQMFODI",
+          authDomain: "casse-auto-8ef9a.firebaseapp.com",
+          databaseURL: "https://casse-auto-8ef9a-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "casse-auto-8ef9a",
+          storageBucket: "casse-auto-8ef9a.firebasestorage.app",
+          messagingSenderId: "257994887284",
+          appId: "1:257994887284:web:16e6006f68520fbbc94121"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 1. تسجيل الدخول
+        document.getElementById('btnAdminLogin').onclick = async () => {
+            const email = document.getElementById('adminEmail').value;
+            const pass = document.getElementById('adminPass').value;
+            
+            if(!email || !pass) {
+                showToast("يرجى إدخال البيانات", "error");
+                return;
+            }
+
+            // لتسهيل التجربة، سنعتبر أي إيميل يحتوي على admin مقبولاً، أو يمكن استخدام تسجيل دخول حقيقي
+            // إذا كان لديك حساب أدمن في فايربيس استخدم signInWithEmailAndPassword
+            try {
+                // محاكاة تسجيل دخول سريع أو حقيقي
+                if(email.includes("admin")) {
+                    // دخول وهمي للتجربة (أو استبدله بـ signInWithEmailAndPassword الحقيقي بالأسفل)
+                    document.getElementById('adminLoginScreen').classList.add('hidden');
+                    document.getElementById('adminDashboard').classList.remove('hidden');
+                    initDashboard();
+                } else {
+                    // محاولة دخول حقيقية
+                    await signInWithEmailAndPassword(auth, email, pass);
+                }
+            } catch(e) {
+                showToast("خطأ في الدخول: " + e.message, "error");
+            }
+        };
+
+        // مراقبة حالة الدخول الحقيقي
+        onAuthStateChanged(auth, (user) => {
+            if(user && user.email.includes('admin')) { // شرط بسيط للحماية
+                document.getElementById('adminLoginScreen').classList.add('hidden');
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                initDashboard();
+            }
+        });
+
+        window.adminLogout = async () => {
+            await signOut(auth);
+            window.location.reload();
+        };
+
+        function initDashboard() {
+            listenPendingSellers();
+            listenBalanceRequests();
+            listenOrders();
+            listenSellers();
+        }
+
+        // 2. طلبات الانضمام (Pending Sellers)
+        function listenPendingSellers() {
+            const q = query(collection(db, "sellers"), where("status", "==", "pending"));
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('adminPendingList');
+                list.innerHTML = "";
+                document.getElementById('statPending').innerText = snapshot.size;
+                
+                if(snapshot.empty) {
+                    list.innerHTML = '<p class="text-center text-gray-500 text-xs py-10">لا توجد طلبات جديدة</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const seller = doc.data();
+                    list.innerHTML += `
+                        <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-sm flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">${seller.shopName}</h4>
+                                <p class="text-[10px] text-gray-400 mt-1">${seller.phone} | ${getWilayaName(seller.wilaya)}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="window.rejectSeller('${doc.id}')" class="bg-red-500/10 text-red-500 p-2 rounded-lg hover:bg-red-500 hover:text-white transition">✕</button>
+                                <button onclick="window.approveSeller('${doc.id}')" class="bg-green-500/10 text-green-500 p-2 rounded-lg hover:bg-green-500 hover:text-white transition">✓</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // 3. طلبات الشحن (Balance Requests) - تم التعديل لإضافة الهاتف
+        function listenBalanceRequests() {
+            const q = query(collection(db, "balance_requests"), where("status", "==", "pending"));
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('adminBalanceRequestsList');
+                list.innerHTML = "";
+                
+                // حساب المبلغ الإجمالي المعلق للعرض (اختياري)
+                let totalPending = 0;
+                
+                if(snapshot.empty) {
+                    list.innerHTML = '<p class="text-center text-gray-500 text-xs py-10 border border-dashed border-gray-800 rounded-2xl">لا توجد طلبات شحن</p>';
+                    document.getElementById('statBalance').innerText = "0 DA";
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const req = doc.data();
+                    totalPending += req.amount;
+                    
+                    list.innerHTML += `
+                        <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-lg mb-3 relative overflow-hidden group">
+                            <!-- زخرفة خلفية -->
+                            <div class="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
+
+                            <div class="flex justify-between items-start mb-3 relative z-10">
+                                <div>
+                                    <h4 class="font-bold text-white text-lg flex items-center gap-2">
+                                        ${req.shopName}
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-gray-700 text-gray-300 border border-gray-600">🏪 متجر</span>
+                                    </h4>
+                                    
+                                    <!-- رقم الهاتف وزر الاتصال -->
+                                    <div class="mt-2">
+                                        <a href="tel:${req.sellerPhone || ''}" class="flex items-center gap-2 group/phone w-fit">
+                                            <div class="bg-gray-700 p-1.5 rounded-full group-hover/phone:bg-green-500/20 transition-colors">
+                                                <svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                            </div>
+                                            <span class="text-xs font-mono font-bold text-gray-300 group-hover/phone:text-white transition-colors tracking-wider" dir="ltr">
+                                                ${req.sellerPhone || 'لا يوجد رقم'}
+                                            </span>
+                                        </a>
+                                    </div>
+
+                                </div>
+                                
+                                <div class="text-center">
+                                    <span class="block text-2xl font-black text-purple-400 tracking-tight" dir="ltr">DA ${req.amount}</span>
+                                </div>
+                            </div>
+
+                            ${req.receiptImage ? `
+                            <div class="w-full h-32 bg-gray-900 rounded-xl mb-4 overflow-hidden border border-gray-700 cursor-pointer relative group-image" onclick="window.open('${req.receiptImage}', '_blank')">
+                                <img src="${req.receiptImage}" class="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity">
+                                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                                    <span class="text-white text-xs font-bold border border-white px-2 py-1 rounded">تكبير الصورة 🔍</span>
+                                </div>
+                            </div>` : ''}
+
+                            <div class="flex gap-3 mt-2">
+                                <button onclick="window.rejectBalance('${doc.id}')" class="flex-1 py-3 rounded-xl bg-gray-900 text-red-400 font-bold text-sm border border-gray-700 hover:bg-red-500/10 hover:border-red-500/50 transition-all">رفض</button>
+                                <button onclick="window.approveBalance('${doc.id}', ${req.amount}, '${req.sellerId}')" class="flex-[2] py-3 rounded-xl bg-green-600 text-white font-bold text-sm shadow-lg hover:bg-green-500 active:scale-95 transition-all">تأكيد الشحن</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('statBalance').innerText = totalPending + " DA";
+            });
+        }
+
+        // 4. الطلبات النشطة (Orders)
+        function listenOrders() {
+            const q = query(collection(db, "orders")); // جلب الكل أو يمكن الفلترة
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('adminOrdersList');
+                list.innerHTML = "";
+                document.getElementById('statOrders').innerText = snapshot.size;
+
+                if(snapshot.empty) {
+                    list.innerHTML = '<p class="text-center text-gray-500 text-xs py-10">لا توجد طلبات</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const order = doc.data();
+                    list.innerHTML += `
+                        <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-2">
+                            <h4 class="font-bold text-white text-sm">${order.partName}</h4>
+                            <p class="text-[10px] text-gray-400">${order.carMake} ${order.carModel || ''}</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-[10px] bg-gray-700 px-2 py-1 rounded text-gray-300">${getWilayaName(order.wilaya)}</span>
+                                <button onclick="window.deleteOrder('${doc.id}')" class="text-red-400 text-[10px] font-bold hover:text-red-300">حذف</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // 5. التجار (Sellers)
+        function listenSellers() {
+            const q = query(collection(db, "sellers"), where("status", "==", "active"));
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('adminSellersList');
+                list.innerHTML = "";
+                document.getElementById('statSellers').innerText = snapshot.size;
+
+                if(snapshot.empty) {
+                     list.innerHTML = '<p class="text-center text-gray-500 text-xs py-10">لا يوجد تجار نشطين</p>';
+                     return;
+                }
+
+                snapshot.forEach(doc => {
+                    const seller = doc.data();
+                    list.innerHTML += `
+                        <div class="bg-gray-800 p-3 rounded-2xl border border-gray-700 mb-2 flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">${seller.shopName}</h4>
+                                <p class="text-[10px] text-gray-400">${seller.phone} | رصيد: <span class="text-green-400">${seller.balance || 0} DA</span></p>
+                            </div>
+                            <button class="bg-gray-700 p-2 rounded-lg text-xs">تجميد</button>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // --- دوال التحكم (Global Functions) ---
+
+        // تفعيل بائع
+        window.approveSeller = async (id) => {
+            if(!confirm("تفعيل هذا التاجر؟")) return;
+            try {
+                await updateDoc(doc(db, "sellers", id), { status: "active" });
+                showToast("تم تفعيل التاجر بنجاح", "success");
+            } catch(e) { showToast("خطأ", "error"); }
+        };
+
+        window.rejectSeller = async (id) => {
+            if(!confirm("رفض الطلب؟")) return;
+            try { await deleteDoc(doc(db, "sellers", id)); showToast("تم الرفض", "info"); } catch(e) { console.log(e); }
+        };
+
+        // شحن رصيد
+        window.approveBalance = async (reqId, amount, sellerId) => {
+            if(!confirm(`تأكيد شحن ${amount} DA لهذا التاجر؟`)) return;
+            try {
+                // 1. تحديث حالة الطلب
+                await updateDoc(doc(db, "balance_requests", reqId), { status: "approved" });
+                // 2. زيادة رصيد التاجر
+                await updateDoc(doc(db, "sellers", sellerId), {
+                    balance: increment(amount)
+                });
+                showToast("تم شحن الرصيد بنجاح!", "success");
+            } catch(e) {
+                console.error(e);
+                showToast("حدث خطأ أثناء الشحن", "error");
+            }
+        };
+
+        window.rejectBalance = async (reqId) => {
+            if(!confirm("رفض طلب الشحن؟")) return;
+            try {
+                await updateDoc(doc(db, "balance_requests", reqId), { status: "rejected" });
+                showToast("تم رفض الطلب", "info");
+            } catch(e) { console.log(e); }
+        };
+
+        window.deleteOrder = async (id) => {
+            if(confirm("حذف هذا الطلب نهائياً؟")) {
+                await deleteDoc(doc(db, "orders", id));
+            }
+        };
+
+        // Helper
+        function showToast(msg, type="info") {
+            const colors = { success: "#22c55e", error: "#ef4444", info: "#3b82f6" };
+            Toastify({
+                text: msg, duration: 3000, gravity: "top", position: "center",
+                style: { background: colors[type], borderRadius: "10px", fontSize: "12px", fontWeight: "bold" }
+            }).showToast();
+        }
+
+        function getWilayaName(code) {
+             const wilayas = ["Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", "Béchar", "Blida", "Bouira", "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Alger", "Djelfa", "Jijel", "Sétif", "Saïda", "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma", "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", "Ouargla", "Oran", "El Bayadh", "Illizi", "Bordj Bou Arreridj", "Boumerdès", "El Tarf", "Tindouf", "Tissemsilt", "El Oued", "Khenchela", "Souk Ahras", "Tipaza", "Mila", "Aïn Defla", "Naâma", "Aïn Témouchent", "Ghardaïa", "Relizane", "Timimoun", "Bordj Badji Mokhtar", "Ouled Djellal", "Béni Abbès", "In Salah", "In Guezzam", "Touggourt", "Djanet", "El M'Ghair", "El Meniaa"];
+             return wilayas[parseInt(code) - 1] || code || "الجزائر";
+        }
+
+    </script>
 </body>
 </html>
