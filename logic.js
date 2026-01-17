@@ -1577,6 +1577,8 @@ function initAdminPanel() {
             list.innerHTML += `
             <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3">
               <p class="font-bold text-white text-sm">🏪 ${r.shopName}</p>
+              <div class="flex items-center gap-1 mt-1">
+                        <span class="text-gray-500 text-[10px]">رقم الحساب:</span>
               <p class="text-purple-400 font-black text-xl my-1">${r.amount} DA</p>
               ${r.receiptImage ? `<img src="${r.receiptImage}" class="h-16 w-auto rounded my-2 border border-gray-600" onclick="openLightbox(this.src)">` : ''}
               <div class="flex gap-2 mt-3">
