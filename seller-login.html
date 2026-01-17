@@ -145,7 +145,7 @@
     </script>
 
     <!-- ========================================== -->
-    <!-- كود FIREBASE (النسخة المتوافقة مع Logic.js) -->
+    <!-- كود FIREBASE (النهائي والمصحح) -->
     <!-- ========================================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -161,7 +161,6 @@
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // معلومات مشروعك كما هي (من ملف Logic)
         const firebaseConfig = {
           apiKey: "AIzaSyDLNY-Uya4tpZSplAqhpsmxgOrwlQMFODI",
           authDomain: "casse-auto-8ef9a.firebaseapp.com",
@@ -176,7 +175,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // متغير لمنع التداخل أثناء التسجيل
         let isRegistering = false;
 
         function showToast(msg, type = "success") {
@@ -193,8 +191,6 @@
             }).showToast();
         }
 
-        // --- دالة ضغط الصور (منسوخة من Logic.js الخاص بك) ---
-        // هذه الدالة هي السر: تحول الصورة لنص وتحل مشكلة Storage
         const compressImage = (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -225,10 +221,10 @@
         };
 
         // ==========================================
-        // 1. مراقب الدخول
+        // 1. مراقب الدخول (المنطق المصحح)
         // ==========================================
         onAuthStateChanged(auth, async (user) => {
-            if (isRegistering) return; // تجاهل أثناء التسجيل
+            if (isRegistering) return;
 
             if (user) {
                 const docRef = doc(db, "sellers", user.uid);
@@ -237,19 +233,24 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         
-                        // فحص الحالات (المنطق القديم)
-                        if (data.isVerified === false || data.status === 'pending') {
-                            await signOut(auth);
-                            showToast("حسابك قيد المراجعة. يرجى الانتظار.", "error");
-                        } else if (data.isBlocked) {
+                        // 🔥 التصحيح هنا: نعتمد على isVerified فقط
+                        // إذا كان الحساب محظوراً
+                        if (data.isBlocked === true) {
                              await signOut(auth);
-                             showToast("تم حظر هذا الحساب.", "error");
-                        } else {
-                            // مسموح الدخول
+                             showToast("⛔ تم حظر هذا الحساب.", "error");
+                        } 
+                        // إذا كان الحساب مفعلاً (حتى لو كانت الحالة pending خطأً من الأدمن)
+                        else if (data.isVerified === true) {
+                            // تخزين الـ ID في اللوكال لضمان عمل الداشبورد
+                            localStorage.setItem('sellerId', user.uid);
                             window.location.href = "dash.html";
+                        } 
+                        // إذا لم يكن مفعلاً
+                        else {
+                            await signOut(auth);
+                            showToast("⏳ حسابك قيد المراجعة من الإدارة. يرجى الانتظار.", "error");
                         }
                     } else {
-                        // حالة نادرة (مسجل دخول ولكن لا توجد بيانات في Firestore)
                          console.log("No data found, waiting...");
                     }
                 } catch (error) {
@@ -277,14 +278,14 @@
                 // المراقب سيتولى الباقي
             } catch (error) {
                 console.error(error);
-                showToast("خطأ في المعلومات", "error");
+                showToast("خطأ في المعلومات أو كلمة السر", "error");
                 loginBtn.innerHTML = "تسجيل الدخول";
                 loginBtn.disabled = false;
             }
         });
 
         // ==========================================
-        // 3. إنشاء حساب جديد (بطريقة Logic.js - Base64)
+        // 3. إنشاء حساب جديد
         // ==========================================
         const regBtn = document.getElementById('btnRegister');
         regBtn.addEventListener('click', async () => {
@@ -301,22 +302,18 @@
                 return;
             }
 
-            // تفعيل القفل
             isRegistering = true;
             regBtn.innerHTML = "جارِ المعالجة...";
             regBtn.disabled = true;
 
             try {
-                // 1. ضغط الصورة (تحويلها لنص) - هذا يحل مشكلة Storage
                 regBtn.innerHTML = "1. معالجة الصورة...";
                 const compressedBase64 = await compressImage(fileInput.files[0]);
 
-                // 2. إنشاء الحساب
                 regBtn.innerHTML = "2. إنشاء الحساب...";
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // 3. حفظ البيانات في Firestore (بما في ذلك الصورة النصية)
                 regBtn.innerHTML = "3. حفظ البيانات...";
                 await setDoc(doc(db, "sellers", user.uid), {
                     shopName: shopName,
@@ -324,17 +321,16 @@
                     email: email,
                     wilaya: wilaya,
                     baladiya: baladiya,
-                    shopImage: compressedBase64, // ✅ الصورة هنا
-                    balance: 1500,               // ✅ الرصيد المجاني
+                    shopImage: compressedBase64,
+                    balance: 1500,
                     isBlocked: false,
-                    isVerified: false,           // ✅ حالة الانتظار
-                    status: 'pending',           // للتوافق مع الكودين
+                    isVerified: false,
+                    status: 'pending',
                     createdAt: serverTimestamp()
                 });
 
                 showToast("✅ تم التسجيل! بانتظار تفعيل الإدارة.", "success");
                 
-                // 4. تسجيل الخروج
                 await signOut(auth);
 
                 setTimeout(() => {
@@ -346,7 +342,7 @@
 
             } catch (error) {
                 console.error(error);
-                if (auth.currentUser) await signOut(auth); // تنظيف
+                if (auth.currentUser) await signOut(auth);
 
                 let msg = error.message;
                 if(error.code === 'auth/email-already-in-use') msg = "البريد مسجل بالفعل";
@@ -358,7 +354,6 @@
             }
         });
 
-        // استعادة كلمة السر
         document.getElementById('btnSendReset').addEventListener('click', async () => {
             const email = document.getElementById('forgotEmail').value;
             if (!email) { showToast("أدخل البريد أولاً", "error"); return; }
