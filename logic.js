@@ -516,82 +516,96 @@ window.openCustomerOfferDetails = (offerDataEncoded) => {
     
     modal.classList.remove('hidden');
 };
-
-// --- الدالة النهائية: الخصم الآمن + الكشف + تجهيز التقييم ---
+// --- الدالة النهائية: الخصم + المسح الفوري + تنظيف الشاشة ---
 window.handleFinalSelection = async (sellerId, orderId, phone, sellerName, sellerWilaya, partName, price) => {
+    
+    // 1. حماية الزر
+    const btn = document.querySelector('#custModalActionArea button');
+    if(btn && btn.disabled) return; 
 
-// 1. حماية الزر من الضغط المتكرر (Double Click)
-const btn = document.querySelector('#custModalActionArea button');
-if(btn && btn.disabled) return; // إذا كان الزر معطلاً، توقف فوراً
+    if(!confirm("هل أنت متأكد؟ سيتم تثبيت الطلب وحذف باقي العروض فوراً.")) return;
+    
+    if(btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="animate-pulse">جاري إتمام العملية...</span>`;
+    }
 
-if(!confirm("هل أنت متأكد من اختيار هذا العرض؟\nسيتم خصم 50 دج من التاجر وكشف الرقم.")) return;
+    try {
+        // 2. فحص حالة الطلب في السيرفر
+        const orderRef = doc(db, "orders", orderId);
+        const orderSnap = await getDoc(orderRef);
 
-// تعطيل الزر فوراً وتغيير النص
-if(btn) {
-btn.disabled = true;
-btn.innerHTML = `<span class="animate-pulse">جاري التحقق والاتصال...</span>`;
-}
+        if (!orderSnap.exists() || orderSnap.data().status === 'sold') {
+            alert("⚠️ عذراً، هذا الطلب مغلق مسبقاً.");
+            document.getElementById('custOfferModal').classList.add('hidden');
+            // تنظيف الشاشة حتى لو كان خطأ
+            const list = document.getElementById('offersList');
+            if(list) list.innerHTML = `<div class="text-center py-10 text-gray-500">الطلب مغلق</div>`;
+            return;
+        }
 
-try {
-// 2. 🛑 الفحص الأمني: هل الطلب مباع مسبقاً؟
-// نقرأ الطلب من قاعدة البيانات قبل الخصم
-const orderRef = doc(db, "orders", orderId);
-const orderSnap = await getDoc(orderRef);
+        // 3. تجهيز العمليات (خصم + تغيير حالة + حذف العروض)
+        const batch = writeBatch(db);
 
-if (!orderSnap.exists()) {
-alert("عذراً، يبدو أن هذا الطلب قد تم حذفه.");
-document.getElementById('custOfferModal').classList.add('hidden');
-return;
-}
+        // أ) خصم الرصيد
+        const sellerRef = doc(db, "sellers", sellerId);
+        batch.update(sellerRef, { balance: increment(-50) });
 
-const currentStatus = orderSnap.data().status;
+        // ب) إغلاق الطلب
+        batch.update(orderRef, { status: 'sold', soldAt: serverTimestamp() });
 
-// 3. إذا كان الطلب مباعاً بالفعل، نوقف العملية ولا نخصم
-if (currentStatus === 'sold') {
-alert("⚠️ تنبيه: لقد تم بيع هذا الطلب بالفعل!");
-document.getElementById('custOfferModal').classList.add('hidden');
+        // ج) تسجيل بيع
+        const saleRef = doc(collection(db, "sales"));
+        batch.set(saleRef, { sellerId, orderId, partName, price: price, soldAt: serverTimestamp() });
 
-// خيار: يمكنك توجيهه للاتصال دون خصم (بما أنه اشترى بالفعل) أو مجرد إغلاق النافذة
-// هنا سنغلق النافذة ونقوم بتحديث الصفحة أو القائمة لاحقاً
-return;
-}
+        // د) حذف كل العروض من قاعدة البيانات
+        const qOffers = query(collection(db, "offers"), where("orderId", "==", orderId));
+        const offersSnap = await getDocs(qOffers);
+        offersSnap.forEach((doc) => { batch.delete(doc.ref); });
 
-// 4. إذا وصلنا هنا، فالطلب سليم -> ننفذ الخصم والبيع
-const batch = writeBatch(db);
+        // تنفيذ العمليات
+        await batch.commit();
 
-// أ) خصم الرصيد
-const sellerRef = doc(db, "sellers", sellerId);
-batch.update(sellerRef, { balance: increment(-50) });
+        // ============================================================
+        // 🔥 هنا التغيير الجوهري: تنظيف الشاشة فوراً (Visual Wipe) 🔥
+        // ============================================================
+        
+        // 1. إخفاء نافذة تفاصيل العرض
+        document.getElementById('custOfferModal').classList.add('hidden');
 
-// ب) تحديث الحالة إلى مباع (ليغلق الباب أمام أي خصم آخر)
-batch.update(orderRef, { status: 'sold', soldAt: serverTimestamp() });
+        // 2. مسح قائمة العروض من الخلفية فوراً واستبدالها برسالة نجاح
+        const offersListEl = document.getElementById('offersList');
+        if(offersListEl) {
+            offersListEl.innerHTML = `
+            <div class="animate-fade-in flex flex-col items-center justify-center py-10 space-y-4">
+                <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-xl font-black text-white">مبروك عليك! 🎉</h3>
+                    <p class="text-gray-400 text-sm mt-1">تم إغلاق الطلب وحذف العروض الأخرى.</p>
+                    <p class="text-orange-500 text-xs mt-2 font-bold">جاري الاتصال بالتاجر...</p>
+                </div>
+            </div>`;
+        }
 
-// ج) تسجيل بيع
-const saleRef = doc(collection(db, "sales"));
-batch.set(saleRef, { sellerId, orderId, partName, price: price, soldAt: serverTimestamp() });
+        // 3. فتح نافذة التقييم
+        currentReviewSellerId = sellerId;
+        currentReviewOrderId = orderId; 
+        if(window.openReviewModal) {
+            window.openReviewModal(sellerName, sellerWilaya);
+        }
 
-// تنفيذ كل العمليات دفعة واحدة
-await batch.commit();
+        // 4. فتح الهاتف
+        setTimeout(() => {
+            window.location.href = `tel:${phone}`;
+        }, 1000);
 
-// 5. إغلاق المودال وتجهيز التقييم
-document.getElementById('custOfferModal').classList.add('hidden');
-
-currentReviewSellerId = sellerId;
-currentReviewOrderId = orderId;
-
-if(window.openReviewModal) {
-window.openReviewModal(sellerName, sellerWilaya);
-}
-
-// 6. فتح الهاتف للاتصال
-window.location.href = `tel:${phone}`;
-
-} catch(e) {
-console.error("Error in transaction:", e);
-alert("حدث خطأ في الاتصال، يرجى المحاولة مجدداً.");
-// إعادة تفعيل الزر في حالة الخطأ فقط
-if(btn) { btn.disabled = false; btn.innerText = "كشف الرقم والاتصال"; }
-}
+    } catch(e) { 
+        console.error("Error:", e); 
+        alert("حدث خطأ، حاول مرة أخرى.");
+        if(btn) { btn.disabled = false; btn.innerText = "كشف الرقم والاتصال"; }
+    }
 };
 
 // --- زر إرسال التقييم + حذف العروض ---
