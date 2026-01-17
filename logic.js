@@ -1577,8 +1577,14 @@ function initAdminPanel() {
             list.innerHTML += `
             <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 mb-3">
               <p class="font-bold text-white text-sm">🏪 ${r.shopName}</p>
+              
+              <!-- 👇 هنا التعديل الصحيح: إضافة الرقم وإغلاق الـ Div بشكل سليم -->
               <div class="flex items-center gap-1 mt-1">
-                        <span class="text-gray-500 text-[10px]">رقم الحساب:</span>
+                  <span class="text-gray-500 text-[10px]">رقم الحساب:</span>
+                  <span class="text-orange-400 font-mono text-sm font-bold tracking-wider" dir="ltr">${r.phone || 'غير متوفر'}</span>
+              </div>
+              <!-- 👆 نهاية التعديل -->
+
               <p class="text-purple-400 font-black text-xl my-1">${r.amount} DA</p>
               ${r.receiptImage ? `<img src="${r.receiptImage}" class="h-16 w-auto rounded my-2 border border-gray-600" onclick="openLightbox(this.src)">` : ''}
               <div class="flex gap-2 mt-3">
