@@ -10,7 +10,7 @@
     <title>دخول البائع | La Casse Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- إضافة Toastify للتنبيهات الجميلة -->
+    <!-- مكتبة التنبيهات -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     
     <style> 
@@ -80,12 +80,64 @@
                     <label class="text-xs text-gray-400">الولاية</label>
                     <select id="regWilaya" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500 cursor-pointer">
                         <option value="" disabled selected>اختر...</option>
-                        <!-- القائمة المختصرة لتوفير المساحة، يمكنك إضافة البقية -->
                         <option value="1">01 - Adrar</option>
+                        <option value="2">02 - Chlef</option>
+                        <option value="3">03 - Laghouat</option>
+                        <option value="4">04 - Oum El Bouaghi</option>
+                        <option value="5">05 - Batna</option>
+                        <option value="6">06 - Béjaïa</option>
+                        <option value="7">07 - Biskra</option>
+                        <option value="8">08 - Béchar</option>
+                        <option value="9">09 - Blida</option>
+                        <option value="10">10 - Bouira</option>
+                        <option value="11">11 - Tamanrasset</option>
+                        <option value="12">12 - Tébessa</option>
+                        <option value="13">13 - Tlemcen</option>
+                        <option value="14">14 - Tiaret</option>
+                        <option value="15">15 - Tizi Ouzou</option>
                         <option value="16">16 - Alger</option>
-                        <option value="31">31 - Oran</option>
+                        <option value="17">17 - Djelfa</option>
+                        <option value="18">18 - Jijel</option>
+                        <option value="19">19 - Sétif</option>
+                        <option value="20">20 - Saïda</option>
+                        <option value="21">21 - Skikda</option>
+                        <option value="22">22 - Sidi Bel Abbès</option>
+                        <option value="23">23 - Annaba</option>
+                        <option value="24">24 - Guelma</option>
                         <option value="25">25 - Constantine</option>
-                        <!-- ... أضف باقي الولايات هنا ... -->
+                        <option value="26">26 - Médéa</option>
+                        <option value="27">27 - Mostaganem</option>
+                        <option value="28">28 - M'Sila</option>
+                        <option value="29">29 - Mascara</option>
+                        <option value="30">30 - Ouargla</option>
+                        <option value="31">31 - Oran</option>
+                        <option value="32">32 - El Bayadh</option>
+                        <option value="33">33 - Illizi</option>
+                        <option value="34">34 - Bordj Bou Arreridj</option>
+                        <option value="35">35 - Boumerdès</option>
+                        <option value="36">36 - El Tarf</option>
+                        <option value="37">37 - Tindouf</option>
+                        <option value="38">38 - Tissemsilt</option>
+                        <option value="39">39 - El Oued</option>
+                        <option value="40">40 - Khenchela</option>
+                        <option value="41">41 - Souk Ahras</option>
+                        <option value="42">42 - Tipaza</option>
+                        <option value="43">43 - Mila</option>
+                        <option value="44">44 - Aïn Defla</option>
+                        <option value="45">45 - Naâma</option>
+                        <option value="46">46 - Aïn Témouchent</option>
+                        <option value="47">47 - Ghardaïa</option>
+                        <option value="48">48 - Relizane</option>
+                        <option value="49">49 - Timimoun</option>
+                        <option value="50">50 - Bordj Badji Mokhtar</option>
+                        <option value="51">51 - Ouled Djellal</option>
+                        <option value="52">52 - Béni Abbès</option>
+                        <option value="53">53 - In Salah</option>
+                        <option value="54">54 - In Guezzam</option>
+                        <option value="55">55 - Touggourt</option>
+                        <option value="56">56 - Djanet</option>
+                        <option value="57">57 - El M'Ghair</option>
+                        <option value="58">58 - El Meniaa</option>
                     </select>
                 </div>
                 <div class="flex-1">
@@ -158,10 +210,9 @@
     </script>
 
     <!-- ========================================== -->
-    <!-- كود FIREBASE والمنطق (تم الدمج هنا للإصلاح) -->
+    <!-- كود FIREBASE والمنطق (تم دمج معلوماتك هنا) -->
     <!-- ========================================== -->
     <script type="module">
-        // استيراد المكتبات الضرورية
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { 
             getAuth, 
@@ -169,24 +220,22 @@
             createUserWithEmailAndPassword,
             sendPasswordResetEmail,
             onAuthStateChanged,
-            setPersistence,        // <-- سر الحل
-            browserLocalPersistence // <-- سر الحل
+            setPersistence,        
+            browserLocalPersistence 
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // ============================================================
-        // ⚠️⚠️⚠️ ضع إعدادات الفايربيس الخاصة بك هنا بدلاً من هذا الكود
-        // ============================================================
+        // ✅✅✅ تم وضع معلوماتك الصحيحة هنا ✅✅✅
         const firebaseConfig = {
-            apiKey: "AIzaSyDxxxxxxxxx", // استبدل هذا
-            authDomain: "your-project.firebaseapp.com",
-            projectId: "your-project",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456:web:xxxxx"
+          apiKey: "AIzaSyDLNY-Uya4tpZSplAqhpsmxgOrwlQMFODI",
+          authDomain: "casse-auto-8ef9a.firebaseapp.com",
+          databaseURL: "https://casse-auto-8ef9a-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "casse-auto-8ef9a",
+          storageBucket: "casse-auto-8ef9a.firebasestorage.app",
+          messagingSenderId: "257994887284",
+          appId: "1:257994887284:web:16e6006f68520fbbc94121"
         };
-        // ============================================================
 
         // تهيئة التطبيق
         const app = initializeApp(firebaseConfig);
@@ -237,14 +286,13 @@
             loginBtn.disabled = true;
 
             try {
-                // الخطوة السحرية: إجبار المتصفح على حفظ الجلسة محلياً
+                // إجبار المتصفح على حفظ الجلسة محلياً
                 await setPersistence(auth, browserLocalPersistence);
                 
                 // ثم محاولة الدخول
                 await signInWithEmailAndPassword(auth, email, password);
                 
                 showToast("تم تسجيل الدخول بنجاح!");
-                // التوجيه سيتم تلقائياً عبر onAuthStateChanged بالأعلى
 
             } catch (error) {
                 console.error(error);
